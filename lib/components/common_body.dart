@@ -1,0 +1,140 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
+import '../components/footer.dart';
+import '../components/item_card.dart';
+import '../logic/model/feed/datum.dart';
+import '../logic/state/loading_state.dart';
+import '../pages/common/common_controller.dart';
+
+Widget _bodyState(String text, Function() onTap) {
+  return GestureDetector(
+    onTap: onTap,
+    child: Container(
+      alignment: Alignment.center,
+      padding: const EdgeInsets.all(10.0),
+      child: Text(text),
+    ),
+  );
+}
+
+Widget commonBody(
+  CommonController commonController, {
+  bool isHomeCard = false,
+  bool isReply2Reply = false,
+  dynamic uid,
+}) {
+  return Obx(
+    () => commonController.loadingState.value is Success
+        ? RefreshIndicator(
+            key: commonController.refreshKey,
+            onRefresh: () async {
+              commonController.onReset();
+              await commonController.onGetData();
+              // 刷新完成后恢复胶囊导航为展开态
+              commonController.returnTopController?.setNavExpanded(true);
+            },
+            child: buildBody(
+              commonController,
+              isHomeCard: isHomeCard,
+              isReply2Reply: isReply2Reply,
+              uid: uid,
+            ),
+          )
+        : Center(
+            child: buildBody(
+              commonController,
+              isHomeCard: isHomeCard,
+              isReply2Reply: isReply2Reply,
+              uid: uid,
+            ),
+          ),
+  );
+}
+
+Widget buildBody(
+  CommonController commonController, {
+  bool isHomeCard = false,
+  bool isReply2Reply = false,
+  dynamic uid,
+  Function(
+    dynamic id,
+    dynamic uname,
+    dynamic fid,
+  )? onReply,
+}) {
+  switch (commonController.loadingState.value) {
+    case Empty():
+      return _bodyState(
+        '暂无数据',
+        () {
+          commonController.isEnd = false;
+          commonController.setLoadingState(LoadingState.loading());
+          commonController.onGetData(true);
+        },
+      );
+    case Error():
+      return _bodyState(
+        (commonController.loadingState.value as Error).errMsg,
+        () {
+          commonController.isEnd = false;
+          commonController.setLoadingState(LoadingState.loading());
+          commonController.onGetData(true);
+        },
+      );
+    case Success():
+      var dataList = (commonController.loadingState.value as Success).response
+          as List<Datum>;
+
+      var bottomPadding = MediaQuery.of(Get.context!).padding.bottom;
+      return ListView.separated(
+        controller: commonController.scrollController,
+        physics: AlwaysScrollableScrollPhysics(
+          parent: isReply2Reply
+              ? const ClampingScrollPhysics()
+              : const BouncingScrollPhysics(),
+        ),
+        padding: isReply2Reply
+            ? EdgeInsets.only(bottom: bottomPadding)
+            : EdgeInsets.only(
+                left: 8, top: 8, right: 8, bottom: 8 + bottomPadding),
+        itemCount: dataList.length + 1,
+        itemBuilder: (_, index) {
+          if (index == dataList.length) {
+            if (!commonController.isEnd && !commonController.isLoading) {
+              commonController.setFooterState(LoadingState.loading());
+              commonController.onGetData(false);
+            }
+            return Obx(
+                () => footerWidget(commonController.footerState.value, () {
+                      commonController.isEnd = false;
+                      commonController.setFooterState(LoadingState.loading());
+                      commonController.onGetData(false);
+                    }));
+          } else {
+            return itemCard(
+              dataList[index],
+              isHomeCard: isHomeCard,
+              isReply2Reply: isReply2Reply,
+              isTopReply: isReply2Reply && index == 0,
+              uid: uid,
+              onBlock: commonController.onBlock,
+              onReply: onReply,
+              onDelete: commonController.postLikeDeleteFollow,
+              onLike: commonController.onLike,
+              onPM: commonController.onPM,
+            );
+          }
+        },
+        separatorBuilder: (_, index) => isReply2Reply
+            ? const Divider(height: 1)
+            : const SizedBox(height: 10),
+      );
+  }
+  return Container(
+    height: 80,
+    alignment: Alignment.center,
+    padding: const EdgeInsets.all(10.0),
+    child: const CircularProgressIndicator(),
+  );
+}

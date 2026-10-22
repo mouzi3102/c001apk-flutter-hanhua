@@ -1,0 +1,73 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+
+def keystorePropertiesFile = rootProject.file('key.properties')
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+def _filePath = System.getenv("KEYSTORE") ?: keystoreProperties["storeFile"]
+def _storeFile = _filePath != null ? file(_filePath) : null
+def _storePassword = System.getenv("KEYSTORE_PASSWORD") ?: keystoreProperties["storePassword"]
+def _keyAlias = System.getenv("KEY_ALIAS") ?: keystoreProperties["keyAlias"]
+def _keyPassword = System.getenv("KEY_PASSWORD") ?: keystoreProperties["keyPassword"]
+
+android {
+    namespace = "com.example.c001apk.flutter"
+    compileSdk = flutter.compileSdkVersion
+    ndkVersion = flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_17
+    }
+
+    defaultConfig {
+        applicationId = "com.example.c001apk.flutter"
+        minSdk = flutter.minSdkVersion
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+        ndk {
+            abiFilters 'arm64-v8a'
+        }
+    }
+
+    signingConfigs {
+        if(_storeFile != null) {
+            release {
+                storeFile _storeFile
+                storePassword _storePassword
+                keyAlias _keyAlias
+                keyPassword _keyPassword
+                v1SigningEnabled true
+                v2SigningEnabled true
+            }
+        }
+    }
+
+    buildTypes {
+        all {
+            signingConfig _storeFile != null ? signingConfigs.release : signingConfigs.debug
+        }
+        release {
+            // 小内存沙箱关闭 R8/资源压缩（无混淆强需求，大幅降低内存与耗时）
+            minifyEnabled false
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}

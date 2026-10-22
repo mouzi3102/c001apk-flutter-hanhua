@@ -1,0 +1,405 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+
+import '../../components/dialog.dart';
+import '../../components/settings/drop_down_menu_item.dart';
+import '../../components/settings/edittext_item.dart';
+import '../../components/settings/item_title.dart';
+import '../../components/settings/switch_item.dart';
+import '../../constants/constants.dart';
+import '../../pages/blacklist/black_list_page.dart' show BlackListType;
+import '../../utils/cache_util.dart';
+import '../../utils/menu_labels.dart';
+import '../../utils/app_theme.dart';
+import '../../utils/storage_util.dart';
+import '../../utils/utils.dart';
+
+class SettingsPage extends StatefulWidget {
+  const SettingsPage({super.key});
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+// ignore: constant_identifier_names
+enum SettingsMenuItem { Feedback, About }
+
+// ignore: constant_identifier_names
+enum FollowType { ALL, USER, TOPIC, PRODUCT, APP }
+
+// ignore: constant_identifier_names
+enum ImageQuality { AUTO, ORIGIN, THUMBNAIL }
+
+/// 自定义刷新率（144Hz）：hive settings box 持久化键
+const String _kRefreshRateFpsKey = 'refresh_rate_fps';
+
+class _SettingsPageState extends State<SettingsPage>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  late final _settingsController = Get.put(SettingsController());
+  String _version = '1.0.0(1)';
+
+  /// 当前选中的刷新率档位；0 = 系统默认/自动
+  int _refreshRateFps = 0;
+
+  Future<void> _getVersionInfo() async {
+    PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    _version = '${packageInfo.version}(${packageInfo.buildNumber})';
+  }
+
+  /// 通过 MethodChannel 下发目标刷新率（0 = 自动/系统默认）
+  Future<void> _applyRefreshRate(int fps) async {
+    try {
+      await Utils.platform.invokeMethod('setFrameRate', {'fps': fps});
+    } catch (_) {}
+  }
+
+  /// 弹出档位选择 bottomSheet：自动 + 原生动态返回的档位列表
+  Future<void> _onRefreshRateTap() async {
+    List<int> rates = [];
+    try {
+      final res = await Utils.platform
+          .invokeMethod<List<dynamic>>('getSupportedRefreshRates');
+      rates = (res ?? const []).cast<int>();
+    } catch (_) {}
+    if (!context.mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: const Text('系统默认'),
+                trailing: _refreshRateFps == 0
+                    ? const Icon(Icons.check)
+                    : null,
+                onTap: () => _pickRefreshRate(0),
+              ),
+              for (final rate in rates)
+                ListTile(
+                  title: Text('$rate Hz'),
+                  trailing: _refreshRateFps == rate
+                      ? const Icon(Icons.check)
+                      : null,
+                  onTap: () => _pickRefreshRate(rate),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickRefreshRate(int fps) async {
+    Get.back();
+    setState(() => _refreshRateFps = fps);
+    GStorage.settings.put(_kRefreshRateFpsKey, fps);
+    await _applyRefreshRate(fps);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _getVersionInfo();
+    // 回读持久化的刷新率选择并重放（原生 onWindowFocusChanged 也会持续重放）
+    if (Platform.isAndroid) {
+      _refreshRateFps =
+          GStorage.settings.get(_kRefreshRateFpsKey, defaultValue: 0);
+      if (_refreshRateFps > 0) {
+        _applyRefreshRate(_refreshRateFps);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    Get.delete<SettingsController>();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return Scaffold(
+      appBar: AppTheme.gradientAppBar(
+        context: context,
+        title: const Text('设置'),
+        leading: IconButton(
+          onPressed: () => Get.back(),
+          icon: const Icon(Icons.arrow_back),
+        ),
+        actions: [
+          PopupMenuButton(
+            onSelected: (SettingsMenuItem item) {
+              switch (item) {
+                case SettingsMenuItem.Feedback:
+                  Utils.launchURL(Constants.URL_SOURCE_CODE);
+                  break;
+                case SettingsMenuItem.About:
+                  showDialog<void>(
+                    context: context,
+                    builder: (context) {
+                      return MAboutDialog(version: _version);
+                    },
+                  );
+                  break;
+              }
+            },
+            itemBuilder: (context) => SettingsMenuItem.values
+                .map((item) => PopupMenuItem<SettingsMenuItem>(
+                      value: item,
+                      child: Text(MenuLabels.of(item)),
+                    ))
+                .toList(),
+          )
+        ],
+      ),
+      body: Builder(
+        builder: (context) {
+          final brightness = Theme.of(context).brightness;
+          final items = <Widget>[
+          const ItemTitle(title: Constants.APP_NAME),
+          const EdittextItem(
+            icon: Icons.smartphone,
+            title: '数字联盟ID',
+            boxKey: SettingsBoxKey.szlmId,
+            needUpdateXAppDevice: true,
+          ),
+          ListTile(
+            leading: const Icon(Icons.developer_mode),
+            title: const Text('参数'),
+            onTap: () => Get.toNamed('/params'),
+          ),
+          // Theme
+          ListTile(
+            title: Text(
+              '主题',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+          ),
+          const DropDownMenuItem(
+            icon: Icons.dark_mode_outlined,
+            title: '夜间模式',
+            boxKey: SettingsBoxKey.selectedTheme,
+            items: [
+              DropdownMenuItem<int>(
+                value: 1,
+                child: Text('关闭'),
+              ),
+              DropdownMenuItem<int>(
+                value: 2,
+                child: Text('开启'),
+              ),
+              DropdownMenuItem<int>(
+                value: 0,
+                child: Text('跟随系统'),
+              ),
+            ],
+            forceAppUpdate: true,
+          ),
+          // Display
+          ListTile(
+            title: Text(
+              '显示',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+          ),
+          ListTile(
+            title: const Text('用户黑名单'),
+            leading: const Icon(Icons.block),
+            onTap: () => Get.toNamed(
+              '/blacklist/',
+              arguments: {'type': BlackListType.user},
+            ),
+          ),
+          ListTile(
+            title: const Text('话题黑名单'),
+            leading: const Icon(Icons.block),
+            onTap: () => Get.toNamed(
+              '/blacklist/',
+              arguments: {'type': BlackListType.topic},
+            ),
+          ),
+          ListTile(
+            title: const Text('自定义刷新率'),
+            subtitle: Text(
+                _refreshRateFps == 0 ? '系统默认' : '$_refreshRateFps Hz'),
+            leading: const Icon(Icons.speed),
+            onTap: () => _onRefreshRateTap(),
+          ),
+          ListTile(
+            title: const Text('字体比例'),
+            subtitle: Text('${GStorage.fontScale.toStringAsFixed(2)} 倍'),
+            leading: const Icon(Icons.text_fields),
+            onTap: () => showDialog<void>(
+              context: context,
+              builder: (context) => SliderDialog(
+                fontScale: GStorage.fontScale,
+                setData: (newValue) {
+                  GStorage.setFontScale(newValue);
+                  Get.forceAppUpdate();
+                },
+              ),
+            ),
+          ),
+          DropDownMenuItem(
+            icon: Icons.add_circle_outline_outlined,
+            title: '关注类型',
+            boxKey: SettingsBoxKey.followType,
+            items: FollowType.values
+                .map((type) => DropdownMenuItem<int>(
+                      value: FollowType.values.indexOf(type),
+                      child: Text(switch (type) {
+                        FollowType.ALL => '全部',
+                        FollowType.USER => '用户',
+                        FollowType.TOPIC => '话题',
+                        FollowType.PRODUCT => '产品',
+                        FollowType.APP => '应用',
+                      }),
+                    ))
+                .toList(),
+          ),
+          /*
+          DropDownMenuItem(
+            icon: Icons.image_outlined,
+            title: 'Image Quality',
+            boxKey: SettingsBoxKey.imageQuality,
+            items: ImageQuality.values
+                .map((type) => DropdownMenuItem<int>(
+                      value: ImageQuality.values.indexOf(type),
+                      child: Text(type.name),
+                    ))
+                .toList(),
+          ),
+          const SwitchItem(
+            icon: Icons.image_outlined,
+            title: 'Image Dim',
+            boxKey: SettingsBoxKey.imageDim,
+            defaultValue: true,
+          ),
+          */
+          const SwitchItem(
+            icon: Icons.travel_explore,
+            title: '外部浏览器打开',
+            boxKey: SettingsBoxKey.openInBrowser,
+            defaultValue: false,
+          ),
+          /*
+          const SwitchItem(
+            icon: Icons.feed_outlined,
+            title: 'Show Square',
+            boxKey: SettingsBoxKey.showSquare,
+            defaultValue: true,
+          ),
+          */
+          const SwitchItem(
+            icon: Icons.history,
+            title: '历史记录',
+            boxKey: SettingsBoxKey.recordHistory,
+            defaultValue: true,
+          ),
+          const SwitchItem(
+            icon: Icons.emoji_emotions_outlined,
+            title: '显示表情',
+            boxKey: SettingsBoxKey.showEmoji,
+            defaultValue: true,
+          ),
+          if (Platform.isAndroid)
+            const SwitchItem(
+              icon: Icons.system_update,
+              title: '检查更新',
+              boxKey: SettingsBoxKey.checkUpdate,
+              defaultValue: true,
+            ),
+          // Others
+          ListTile(
+            title: Text(
+              '其它',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+          ),
+          ListTile(
+            title: const Text('关于'),
+            subtitle: Text(_version),
+            leading: const Icon(Icons.all_inclusive),
+            onTap: () =>
+                Get.toNamed('/about', parameters: {'version': _version}),
+          ),
+          Obx(
+            () => ListTile(
+              title: const Text('清除缓存'),
+              subtitle: _settingsController.cacheSize.value.isNotEmpty
+                  ? Text(_settingsController.cacheSize.value)
+                  : null,
+              leading: const Icon(Icons.cleaning_services_outlined),
+              onTap: () async {
+                await _settingsController.getCacheSize();
+                if (context.mounted) {
+                  showDialog<void>(
+                    context: context,
+                    builder: (context) => ClearDialog(
+                      cacheSize: _settingsController.cacheSize.value,
+                      onClearCache: () async {
+                        if (await CacheManage().clearCacheAll()) {
+                          _settingsController.getCacheSize();
+                        }
+                      },
+                    ),
+                  );
+                }
+              },
+            ),
+          ),
+          ];
+          return ListView.separated(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              final item = items[index];
+              if (item is ItemTitle) {
+                return item;
+              }
+              return Container(
+                decoration: AppTheme.cardDecoration(brightness),
+                child: item,
+              );
+            },
+            separatorBuilder: (context, index) => const SizedBox(height: 8),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class SettingsController extends GetxController {
+  RxString cacheSize = ''.obs;
+
+  Future<void> getCacheSize() async {
+    final res = await CacheManage().loadApplicationCache();
+    cacheSize.value = res;
+  }
+
+  @override
+  void onInit() {
+    super.onInit();
+    getCacheSize();
+  }
+}
