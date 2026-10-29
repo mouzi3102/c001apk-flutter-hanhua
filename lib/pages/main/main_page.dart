@@ -171,29 +171,29 @@ class _MainPageState extends State<MainPage> {
       // 收起态仅在主页 tab 才可刷新
       final canRefresh = _selectedIndex == 0;
 
+      final b = isDark ? Brightness.dark : Brightness.light;
       // 阴影与背景分离：阴影放在外层固定圆角容器，避免 AnimatedSize
       // 过渡期间阴影呈现方形外框
+      const double capsuleRadius = 28;
+      final Color capsuleBg =
+          b == Brightness.dark ? AppTheme.darkCardBg : AppTheme.lightCardBg;
+      final Color capsuleBorder =
+          b == Brightness.dark ? AppTheme.darkCardBorder : AppTheme.lightCardBorder;
       final BoxDecoration shadowDecoration = BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(capsuleRadius),
         boxShadow: [
           BoxShadow(
-            color: isDark
-                ? AppTheme.darkGlow(0.18)
-                : Colors.black.withValues(alpha: 0.12),
+            color: AppTheme.darkGlow(0.18),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
         ],
       );
       final BoxDecoration capsuleDecoration = BoxDecoration(
-        // 毛玻璃背景：半透明色让 BackdropFilter 的模糊可见
-        // 日间 40% 白底，夜间 40% darkCardBg
-        color: isDark
-            ? const Color(0xFF161B1A).withValues(alpha: 0.40)
-            : Colors.white.withValues(alpha: 0.40),
-        borderRadius: BorderRadius.circular(28),
+        color: capsuleBg,
+        borderRadius: BorderRadius.circular(capsuleRadius),
         border: Border.all(
-          color: isDark ? AppTheme.darkCardBorder : AppTheme.lightCardBorder,
+          color: capsuleBorder,
           width: 1,
         ),
       );
@@ -248,16 +248,12 @@ class _MainPageState extends State<MainPage> {
       return DecoratedBox(
         decoration: shadowDecoration,
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(28),
-          // 毛玻璃：模糊按钮背后的内容，叠加半透明 capsuleDecoration
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-            child: Container(
-              height: 56,
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              decoration: capsuleDecoration,
-              child: capsuleChild,
-            ),
+          borderRadius: BorderRadius.circular(capsuleRadius),
+          child: Container(
+            height: 56,
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            decoration: capsuleDecoration,
+            child: capsuleChild,
           ),
         ),
       );

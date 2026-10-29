@@ -6,9 +6,11 @@ import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'components/app_background.dart';
 import 'components/custom_toast.dart';
 import 'constants/constants.dart';
 import 'logic/network/request.dart';
+import 'logic/refresh_adaptive.dart';
 import 'router/app_pages.dart';
 import 'utils/app_theme.dart';
 import 'utils/storage_util.dart';
@@ -78,7 +80,15 @@ class C001APKAPP extends StatelessWidget {
           child: MediaQuery(
             data: MediaQuery.of(context)
                 .copyWith(textScaler: TextScaler.linear(fontScale)),
-            child: child!,
+            // 全局单层静态背景（渐变基座）：任意路由（含压栈页）可见。
+            child: Stack(
+              children: [
+                const AppBackground(),
+                RefreshAdaptive(
+                  child: child!,
+                ),
+              ],
+            ),
           ),
         );
       },

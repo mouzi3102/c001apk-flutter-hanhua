@@ -211,7 +211,7 @@ class _ReplyDialogState extends State<ReplyDialog> with WidgetsBindingObserver {
           context: context,
           builder: (context) => AlertDialog(
             title: const Text('验证码'),
-            content: IntrinsicHeight(
+          content: IntrinsicHeight(
               child: Row(
                 children: [
                   Expanded(

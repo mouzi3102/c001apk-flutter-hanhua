@@ -294,7 +294,7 @@ class GStorage {
   }
 
   static bool get checkUpdate {
-    return settings.get(SettingsBoxKey.checkUpdate, defaultValue: true);
+    return settings.get(SettingsBoxKey.checkUpdate, defaultValue: false);
   }
 
   static void setCheckUpdate(bool value) {

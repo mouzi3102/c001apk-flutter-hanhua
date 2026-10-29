@@ -3,6 +3,7 @@ import 'package:expandable_page_view/expandable_page_view.dart';
 import 'package:flutter/material.dart';
 
 import '../../logic/model/feed/entity.dart';
+import '../../utils/app_theme.dart';
 import '../../utils/extensions.dart';
 import '../../utils/utils.dart';
 

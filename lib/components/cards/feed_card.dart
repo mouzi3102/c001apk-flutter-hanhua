@@ -111,32 +111,8 @@ class FeedCard extends StatelessWidget {
         onLongPress: () =>
             Get.toNamed('/copy', parameters: {'text': data.message.orEmpty}),
         child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(cardRadius),
-            border: isDark
-                ? Border.all(color: AppTheme.darkCardBorder, width: 1)
-                : Border.all(color: AppTheme.lightCardBorder, width: 1),
-            boxShadow: isDark
-                ? [
-                    BoxShadow(
-                      color: AppTheme.darkGlow(0.08),
-                      blurRadius: 12,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : [
-                    BoxShadow(
-                      color: AppTheme.lightSecondary.withValues(alpha: 0.12),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                    ),
-                    BoxShadow(
-                      color: AppTheme.lightPrimary.withValues(alpha: 0.06),
-                      blurRadius: 8,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
-          ),
+          // 统一走 AppTheme.cardDecoration（含半透明底色+边框+软辉光）
+          decoration: AppTheme.cardDecoration(Theme.of(context).brightness),
           padding: const EdgeInsets.only(bottom: 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

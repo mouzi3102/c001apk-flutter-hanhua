@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'storage_util.dart';
+
 /// 应用主题系统：
 /// - 方案 C 薄荷玻璃（LIQUID MINT）= 日间模式
 /// - 方案 A 极客电路绿（CIRCUIT GREEN）= 夜间模式
@@ -40,6 +42,10 @@ class AppTheme {
   static Color darkGlow([double alpha = 0.18]) =>
       const Color(0xFF5EFF9F).withValues(alpha: alpha);
 
+  /// Scaffold 底色（不透明纯色）。
+  static Color _scaffoldBg(Brightness b) =>
+      b == Brightness.dark ? darkBg : lightBg;
+
   /// 日间渐变背景
   static const LinearGradient lightBackgroundGradient = LinearGradient(
     begin: Alignment.topCenter,
@@ -75,7 +81,7 @@ class AppTheme {
           outlineVariant: lightOutlineVariant,
           onInverseSurface: Color(0xFFF1F0EA),
         ),
-        scaffoldBackgroundColor: lightBg,
+        scaffoldBackgroundColor: _scaffoldBg(Brightness.light),
         cardTheme: CardThemeData(
           color: lightCardBg,
           surfaceTintColor: Colors.transparent,
@@ -168,7 +174,7 @@ class AppTheme {
           outlineVariant: darkOutlineVariant,
           onInverseSurface: Color(0xFF1A201E),
         ),
-        scaffoldBackgroundColor: darkBg,
+        scaffoldBackgroundColor: _scaffoldBg(Brightness.dark),
         cardTheme: CardThemeData(
           color: darkCardBg,
           surfaceTintColor: Colors.transparent,

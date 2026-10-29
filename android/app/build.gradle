@@ -42,6 +42,14 @@ android {
         }
     }
 
+    // 纯 arm64 单 ABI 加固：即使插件 AAR 向 lib/<其他 ABI>/ 注入 .so
+    // （如 libdatastore_shared_counter.so），也从最终包中排除，保证只含 arm64-v8a
+    packagingOptions {
+        jniLibs {
+            excludes += ['lib/armeabi-v7a/**', 'lib/x86_64/**', 'lib/x86/**']
+        }
+    }
+
     signingConfigs {
         if(_storeFile != null) {
             release {

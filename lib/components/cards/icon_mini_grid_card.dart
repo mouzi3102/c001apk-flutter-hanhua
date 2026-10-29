@@ -4,6 +4,7 @@ import '../../components/cards/icon_mini_scroll_card.dart' show miniCardItem;
 import '../../components/cards/title_card.dart';
 import '../../logic/model/feed/datum.dart';
 import '../../logic/model/feed/entity.dart';
+import '../../utils/app_theme.dart';
 import '../../utils/extensions.dart';
 
 class IconMiniGridCard extends StatelessWidget {

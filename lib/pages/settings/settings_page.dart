@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
+import 'package:hive/hive.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../components/dialog.dart';
@@ -11,6 +13,9 @@ import '../../components/settings/edittext_item.dart';
 import '../../components/settings/item_title.dart';
 import '../../components/settings/switch_item.dart';
 import '../../constants/constants.dart';
+import '../../logic/backup/backup_service.dart';
+import '../../logic/backup/webdav_client.dart';
+import '../../logic/model/fav_history/fav_history.dart';
 import '../../pages/blacklist/black_list_page.dart' show BlackListType;
 import '../../utils/cache_util.dart';
 import '../../utils/menu_labels.dart';
@@ -37,6 +42,14 @@ enum ImageQuality { AUTO, ORIGIN, THUMBNAIL }
 /// 自定义刷新率（144Hz）：hive settings box 持久化键
 const String _kRefreshRateFpsKey = 'refresh_rate_fps';
 
+/// 省电自适应开关：无操作 2 秒自动降至 60Hz，交互恢复所选档位
+const String _kRefreshAdaptiveKey = 'refresh_adaptive';
+
+/// WebDAV 备份：服务器地址 / 用户名 / 密码（密码明文存本机，对话框已提示）
+const String _kWebdavUrlKey = 'webdav_url';
+const String _kWebdavUserKey = 'webdav_user';
+const String _kWebdavPassKey = 'webdav_pass';
+
 class _SettingsPageState extends State<SettingsPage>
     with AutomaticKeepAliveClientMixin {
   @override
@@ -47,6 +60,9 @@ class _SettingsPageState extends State<SettingsPage>
 
   /// 当前选中的刷新率档位；0 = 系统默认/自动
   int _refreshRateFps = 0;
+
+  /// 省电自适应开关（默认开启）
+  bool _refreshAdaptive = true;
 
   Future<void> _getVersionInfo() async {
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
@@ -105,6 +121,213 @@ class _SettingsPageState extends State<SettingsPage>
     await _applyRefreshRate(fps);
   }
 
+  // ==================== WebDAV 备份/恢复 ====================
+
+  late final TextEditingController _webdavUrlCtrl = TextEditingController(
+    text: GStorage.settings.get(_kWebdavUrlKey, defaultValue: ''),
+  );
+  late final TextEditingController _webdavUserCtrl = TextEditingController(
+    text: GStorage.settings.get(_kWebdavUserKey, defaultValue: ''),
+  );
+  late final TextEditingController _webdavPassCtrl = TextEditingController(
+    text: GStorage.settings.get(_kWebdavPassKey, defaultValue: ''),
+  );
+  bool _webdavPassObscure = true;
+
+  WebDavClient? _buildClient() {
+    final url = _webdavUrlCtrl.text.trim();
+    if (url.isEmpty) {
+      SmartDialog.showToast('请填写 WebDAV 服务器地址');
+      return null;
+    }
+    return WebDavClient(
+      baseUrl: url,
+      username: _webdavUserCtrl.text.trim(),
+      password: _webdavPassCtrl.text,
+    );
+  }
+
+  void _saveWebDavConfig() {
+    GStorage.settings.put(_kWebdavUrlKey, _webdavUrlCtrl.text.trim());
+    GStorage.settings.put(_kWebdavUserKey, _webdavUserCtrl.text.trim());
+    GStorage.settings.put(_kWebdavPassKey, _webdavPassCtrl.text);
+  }
+
+  Future<void> _showWebDavDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('WebDAV 备份'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '备份文件含账号 token 等敏感信息，请谨慎保管；密码以明文保存在本机。',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _webdavUrlCtrl,
+                  decoration: const InputDecoration(
+                    labelText: '服务器地址',
+                    hintText: 'https://your-server.com/dav/',
+                  ),
+                ),
+                TextField(
+                  controller: _webdavUserCtrl,
+                  decoration: const InputDecoration(labelText: '用户名'),
+                ),
+                StatefulBuilder(
+                  builder: (context, setSheetState) {
+                    return TextField(
+                      controller: _webdavPassCtrl,
+                      obscureText: _webdavPassObscure,
+                      decoration: InputDecoration(
+                        labelText: '密码',
+                        suffixIcon: IconButton(
+                          icon: Icon(_webdavPassObscure
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined),
+                          tooltip: _webdavPassObscure ? '显示密码' : '隐藏密码',
+                          onPressed: () => setSheetState(() =>
+                              _webdavPassObscure = !_webdavPassObscure),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                GStorage.settings.delete(_kWebdavUrlKey);
+                GStorage.settings.delete(_kWebdavUserKey);
+                GStorage.settings.delete(_kWebdavPassKey);
+                _webdavUrlCtrl.clear();
+                _webdavUserCtrl.clear();
+                _webdavPassCtrl.clear();
+                Get.back();
+                SmartDialog.showToast('已清除已存配置');
+              },
+              child: const Text('清除已存配置'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Get.back();
+                await _doWebDavBackup();
+              },
+              child: const Text('备份'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Get.back();
+                await _doWebDavRestore();
+              },
+              child: const Text('恢复'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// 收集 5 个 hive box 为 JSON 安全结构（按 v10 备份范围清单；settings 排除死键与已删除功能键）
+  Map<String, Map<String, dynamic>> _collectBoxes() {
+    final settings = BackupService.normalize(GStorage.settings.toMap())
+      ..removeWhere((k, v) => BackupService.excludedSettingsKeys.contains(k));
+    // typed box（historyFeed/favFeed 均存 FavHistoryItem）显式拍平为 JSON
+    Map<String, dynamic> typedToJson(Box box) {
+      final out = <String, dynamic>{};
+      box.toMap().forEach((k, v) {
+        if (v is FavHistoryItem) {
+          out['$k'] = {
+            'id': v.id,
+            'uid': v.uid,
+            'username': v.username,
+            'userAvatar': v.userAvatar,
+            'message': v.message,
+            'device': v.device,
+            'dateline': v.dateline,
+            'time': v.time,
+          };
+        }
+      });
+      return out;
+    }
+
+    return {
+      'settings': settings,
+      'searchHistory': BackupService.normalize(GStorage.searchHistory.toMap()),
+      'historyFeed': typedToJson(GStorage.historyFeed),
+      'favFeed': typedToJson(GStorage.favFeed),
+      'blackList': BackupService.normalize(GStorage.blackList.toMap()),
+    };
+  }
+
+  Future<void> _doWebDavBackup() async {
+    final client = _buildClient();
+    if (client == null) return;
+    _saveWebDavConfig();
+    try {
+      final msg = await BackupService.backupTo(client, _collectBoxes());
+      SmartDialog.showToast(msg.isEmpty ? '备份成功' : '$msg，上传完成');
+    } on WebDavException catch (e) {
+      SmartDialog.showToast(e.message);
+    } catch (e) {
+      SmartDialog.showToast('备份失败：$e');
+    }
+  }
+
+  Future<void> _doWebDavRestore() async {
+    final client = _buildClient();
+    if (client == null) return;
+    _saveWebDavConfig();
+    try {
+      final boxes = await BackupService.restoreFrom(client);
+      boxes.forEach((boxName, entries) {
+        switch (boxName) {
+          case 'settings':
+            GStorage.settings.putAll(entries);
+          case 'searchHistory':
+            GStorage.searchHistory.putAll(entries);
+          case 'blackList':
+            GStorage.blackList.putAll(entries);
+          case 'historyFeed':
+          case 'favFeed':
+            // typed box：fromJson 实例化 FavHistoryItem 后回灌；坏条目自动跳过
+            final (items, skipped) = BackupService.reviveFavEntries(entries);
+            if (boxName == 'historyFeed') {
+              GStorage.historyFeed.putAll(items);
+            } else {
+              GStorage.favFeed.putAll(items);
+            }
+            if (skipped > 0) {
+              SmartDialog.showToast('$boxName：$skipped 条数据损坏已跳过');
+            }
+        }
+      });
+      SmartDialog.showToast('恢复成功，建议重启应用');
+    } on WebDavException catch (e) {
+      SmartDialog.showToast(e.message);
+    } catch (e) {
+      SmartDialog.showToast('恢复失败：$e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _webdavUrlCtrl.dispose();
+    _webdavUserCtrl.dispose();
+    _webdavPassCtrl.dispose();
+    Get.delete<SettingsController>();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -117,12 +340,12 @@ class _SettingsPageState extends State<SettingsPage>
         _applyRefreshRate(_refreshRateFps);
       }
     }
-  }
-
-  @override
-  void dispose() {
-    Get.delete<SettingsController>();
-    super.dispose();
+    // 回读省电自适应状态
+    _refreshAdaptive =
+        GStorage.settings.get(_kRefreshAdaptiveKey, defaultValue: true);
+    _webdavUrlCtrl.text = GStorage.settings.get(_kWebdavUrlKey, defaultValue: '');
+    _webdavUserCtrl.text = GStorage.settings.get(_kWebdavUserKey, defaultValue: '');
+    _webdavPassCtrl.text = GStorage.settings.get(_kWebdavPassKey, defaultValue: '');
   }
 
   @override
@@ -238,6 +461,22 @@ class _SettingsPageState extends State<SettingsPage>
                 _refreshRateFps == 0 ? '系统默认' : '$_refreshRateFps Hz'),
             leading: const Icon(Icons.speed),
             onTap: () => _onRefreshRateTap(),
+          ),
+          SwitchListTile(
+            title: const Text('省电自适应'),
+            subtitle: const Text('无操作 2 秒后自动降至 60Hz，交互恢复所选档位'),
+            secondary: const Icon(Icons.battery_saver),
+            value: _refreshAdaptive,
+            onChanged: (v) {
+              GStorage.settings.put(_kRefreshAdaptiveKey, v);
+              setState(() => _refreshAdaptive = v);
+            },
+          ),
+          ListTile(
+            title: const Text('WebDAV 备份'),
+            subtitle: const Text('服务器配置 / 手动备份与恢复'),
+            leading: const Icon(Icons.storage_outlined),
+            onTap: () => _showWebDavDialog(),
           ),
           ListTile(
             title: const Text('字体比例'),
