@@ -53,12 +53,13 @@ class WebDavClient {
   String get _base =>
       baseUrl.endsWith('/') ? baseUrl : '$baseUrl/';
 
-  Uri get _backupUri => Uri.parse('$_base$backupFileName');
+  Uri _backupUriOf(String fileName) => Uri.parse('$_base$fileName');
 
   /// 自动建目录后的上传地址
   Uri get _autoDirUri => Uri.parse('$_base$autoDirName/');
 
-  Uri get _autoBackupUri => Uri.parse('$_base$autoDirName/$backupFileName');
+  Uri _autoBackupUriOf(String fileName) =>
+      Uri.parse('$_base$autoDirName/$fileName');
 
   String get _basicAuthHeader =>
       'Basic ${base64Encode(utf8.encode('$username:$password'))}';
@@ -84,16 +85,17 @@ class WebDavClient {
     return dio;
   }
 
-  /// 备份：PUT 上传 [bytes]。先直写目标文件；遇 404（父目录不允许建文件）→
-  /// 自动 MKCOL 子目录 {base}/c001apk_backups/ 后重试。
+  /// 备份：PUT 上传 [bytes] 到 [fileName]。先直写目标文件；遇 404/409（父目录
+  /// 不允许建文件/父目录缺失）→ 自动 MKCOL 子目录 {base}/c001apk_backups/ 后重试。
   /// 返回提示文案（自动建目录成功时附带说明，供 UI Toast）。
-  Future<String> putBackup(List<int> bytes) async {
+  Future<String> putBackup(List<int> bytes,
+      {String fileName = backupFileName}) async {
     final dio = _newDio();
     try {
       // 不声明泛型：错误响应（4xx XML 错误体）不是 List<int>，
       // 带泛型会在赋值时类型转换崩溃——这正是用户实机「请求错误」根因
       var resp = await dio.putUri(
-        _backupUri,
+        _backupUriOf(fileName),
         data: bytes,
         options: Options(
           responseType: ResponseType.plain,
@@ -111,7 +113,7 @@ class WebDavClient {
               '目录不存在（404）：服务器不允许自动创建目录，请手动指到一个已存在的目录');
         }
         resp = await dio.putUri(
-          _autoBackupUri,
+          _autoBackupUriOf(fileName),
           data: bytes,
           options: Options(
             responseType: ResponseType.plain,
@@ -150,18 +152,18 @@ class WebDavClient {
     }
   }
 
-  /// 恢复：GET 下载备份 JSON 字节。先查目标文件；404 再查自动目录。
-  Future<List<int>> getBackup() async {
+  /// 恢复：GET 下载 [fileName] 备份 JSON 字节。先查目标文件；404 再查自动目录。
+  Future<List<int>> getBackup({String fileName = backupFileName}) async {
     final dio = _newDio();
     try {
       var resp = await dio.getUri<List<int>>(
-        _backupUri,
+        _backupUriOf(fileName),
         options: Options(responseType: ResponseType.bytes),
       );
       if (resp.statusCode == 404) {
         // 可能在自动创建的子目录里
         resp = await dio.getUri<List<int>>(
-          _autoBackupUri,
+          _autoBackupUriOf(fileName),
           options: Options(responseType: ResponseType.bytes),
         );
       }
@@ -169,6 +171,16 @@ class WebDavClient {
       return List<int>.from(resp.data ?? const []);
     } on DioException catch (e) {
       throw _toChinese(e);
+    }
+  }
+
+  /// 可选读取：云端无此文件（404）时返回 null，其他错误照常抛出。
+  Future<List<int>?> getBackupOrNull({String fileName = backupFileName}) async {
+    try {
+      return await getBackup(fileName: fileName);
+    } on WebDavException catch (e) {
+      if (e.message.startsWith('备份不存在')) return null;
+      rethrow;
     }
   }
 

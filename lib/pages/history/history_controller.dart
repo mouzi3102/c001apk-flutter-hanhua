@@ -46,6 +46,9 @@ class HistoryController extends GetxController {
     _getData();
   }
 
+  @override
+  void refresh() => _getData();
+
   void clearAll() async {
     if (type == HistoryType.Favorite) {
       favFeed.clear();
