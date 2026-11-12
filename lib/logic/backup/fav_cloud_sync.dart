@@ -29,6 +29,21 @@ class FavBackupResult {
 /// 收藏备份/同步：id 并集合并（任何方向都不覆盖/删除对方独有收藏）。
 /// 纯逻辑，favFeed 数据结构沿用 FavHistoryItem。
 class FavCloudSync {
+  /// 从设置读取 WebDAV 配置；未配置（或用默认占位值）返回 null。
+  /// 供「收藏后自动上传」「进入收藏页自动同步」这类静默流程使用，
+  /// 与手动按钮不同，这里不弹任何提示。
+  static WebDavClient? clientFromSettings() {
+    final url = GStorage.settings.get('webdav_url', defaultValue: '');
+    final user = GStorage.settings.get('webdav_user', defaultValue: '');
+    final pass = GStorage.settings.get('webdav_pass', defaultValue: '');
+    final u = url.toString().trim();
+    final n = user.toString().trim();
+    final p = pass.toString().trim();
+    if (u.isEmpty || n.isEmpty || p.isEmpty) return null;
+    if (!u.startsWith('http')) return null;
+    return WebDavClient(baseUrl: u, username: n, password: p);
+  }
+
   /// 把本地 favFeed 拍平成 {id: json}
   static Map<String, Map<String, dynamic>> collectLocalFav() {
     final out = <String, Map<String, dynamic>>{};

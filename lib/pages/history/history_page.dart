@@ -39,6 +39,29 @@ class _HistoryPageState extends State<HistoryPage> {
       _type == HistoryType.Favorite ? '搜索收藏内容' : '搜索浏览历史';
 
   @override
+  void initState() {
+    super.initState();
+    // 进入「本地收藏」即静默做一次双向同步（云端∪本地 → 写回本地 & 云端）
+    if (_type == HistoryType.Favorite) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _autoSyncFav());
+    }
+  }
+
+  /// 进入收藏页时的静默同步：未配置 WebDAV 就跳过，不弹提示
+  Future<void> _autoSyncFav() async {
+    final client = FavCloudSync.clientFromSettings();
+    if (client == null) return;
+    try {
+      final r = await FavCloudSync.restoreFav(client);
+      if (r != null && mounted) {
+        _controller.refresh();
+      }
+    } catch (e) {
+      debugPrint('[fav auto sync] failed: $e');
+    }
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     _searchFocus.dispose();

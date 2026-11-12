@@ -20,12 +20,16 @@ Widget htmlText(
 }) {
   String? htmlConvert;
   if (GStorage.showEmoji) {
-    RegExp regExp = RegExp('\\[[^\\]]+\\]');
+    // 宽松匹配：兼容全角括号、括号内多余空格，避免服务端/输入法带来的变体
+    // 匹配不上而退化成「[墨镜滑稽]」这样的纯文字。
+    final RegExp regExp = RegExp(r'[\[［【]\s*([^\]］】]{1,14})\s*[\]］】]');
     htmlConvert = html.replaceAll('\n', '<br/>').replaceAllMapped(
       regExp,
       (match) {
-        String matchedString = match.group(0) ?? '';
-        String? src = EmojiUtil.emojiMap[matchedString];
+        final String matchedString = match.group(0) ?? '';
+        final String name = match.group(1) ?? '';
+        final String? src =
+            EmojiUtil.emojiMap[matchedString] ?? EmojiUtil.lookup('[$name]');
         if (!src.isNullOrEmpty) {
           return '<img src="$src">';
         } else {
@@ -78,6 +82,26 @@ Widget htmlText(
             double size =
                 MediaQuery.of(Get.context!).textScaler.scale(fontSize);
             String src = element.attributes['src'] ?? '';
+            // 本地表情优先按「文件名是否在表情表里」判定，而不是 endsWith('png')：
+            // HTML 解析器可能给 src 拼上路径/查询参数/百分号编码，导致判定落空、
+            // 表情退化成文字或被当成网络图片（表现为只看到 [墨镜滑稽] 这类字符）。
+            if (EmojiUtil.isEmojiFile(src)) {
+              final String file = EmojiUtil.emojiFile(src);
+              final String? name = EmojiUtil.fileToKey[file];
+              return InlineCustomWidget(
+                alignment: PlaceholderAlignment.middle,
+                child: Image.asset(
+                  'assets/emojis/$file',
+                  width: size * 1.3,
+                  height: size * 1.3,
+                  filterQuality: FilterQuality.medium,
+                  errorBuilder: (_, __, ___) => Text(
+                    name ?? '',
+                    style: TextStyle(fontSize: fontSize),
+                  ),
+                ),
+              );
+            }
             return InlineCustomWidget(
               alignment: PlaceholderAlignment.middle,
               child: src.endsWith('icon')

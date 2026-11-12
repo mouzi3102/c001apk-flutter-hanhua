@@ -21,6 +21,7 @@ import '../../../logic/network/network_repo.dart';
 import '../../../pages/feed/reply/emoji_panel.dart';
 import '../../../pages/feed/reply/toolbar_icon_button.dart';
 import '../../../utils/extensions.dart';
+import '../../../utils/emoji_text_controller.dart';
 import '../../../utils/oss/aliyunoss_client.dart';
 import '../../../utils/oss/aliyunoss_config.dart';
 import '../../../utils/oss_util.dart';
@@ -54,7 +55,7 @@ class ReplyDialog extends StatefulWidget {
 
 class _ReplyDialogState extends State<ReplyDialog> with WidgetsBindingObserver {
   late final TextEditingController _replyContentController =
-      TextEditingController(
+      EmojiTextEditingController(
           text: widget.targetType == 'tag' ? '#${widget.title}# ' : null);
   final FocusNode _replyContentFocusNode = FocusNode();
   late double _emoteHeight = Utils.isDesktop ? 255.0 : 0.0;

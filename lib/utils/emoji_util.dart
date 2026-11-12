@@ -156,4 +156,56 @@ class EmojiUtil {
     '[新酷币2€]': 'coolapk_emotion_79.png',
     '[新酷币5€]': 'coolapk_emotion_80.png',
   };
+  /// 归一化查找表：去空格、统一括号（全角/【】）、ASCII 键转小写
+  static final Map<String, String> _normalizedMap = () {
+    final map = <String, String>{};
+    emojiMap.forEach((key, value) {
+      map[_normalizeKey(key)] = value;
+    });
+    return map;
+  }();
+
+  /// 文件名 → 表情文字（用于渲染失败时回退展示）
+  static final Map<String, String> fileToKey = {
+    for (final entry in emojiMap.entries) entry.value: entry.key,
+  };
+
+  static String _normalizeKey(String raw) {
+    var key = raw.trim();
+    key = key
+        .replaceAll('［', '[')
+        .replaceAll('］', ']')
+        .replaceAll('【', '[')
+        .replaceAll('】', ']');
+    if (key.length >= 2 && key.startsWith('[') && key.endsWith(']')) {
+      final String inner = key.substring(1, key.length - 1).trim();
+      return '[${inner.toLowerCase()}]';
+    }
+    return key.toLowerCase();
+  }
+
+  /// 宽松查找：先精确命中，再按归一化键兜底
+  static String? lookup(String raw) =>
+      emojiMap[raw] ?? _normalizedMap[_normalizeKey(raw)];
+
+  /// 从 src 里取出表情文件名（兼容路径、查询参数和百分号编码）
+  static String emojiFile(String raw) {
+    var s = raw;
+    final int q = s.indexOf('?');
+    if (q >= 0) s = s.substring(0, q);
+    final int h = s.indexOf('#');
+    if (h >= 0) s = s.substring(0, h);
+    try {
+      s = Uri.decodeComponent(s);
+    } catch (_) {}
+    final int slash = s.lastIndexOf('/');
+    if (slash >= 0) s = s.substring(slash + 1);
+    return s;
+  }
+
+  /// 是否是本地表情图片文件
+  static bool isEmojiFile(String raw) {
+    final String file = emojiFile(raw);
+    return file.endsWith('.png') && fileToKey.containsKey(file);
+  }
 }

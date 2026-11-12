@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
+import '../../logic/backup/fav_cloud_sync.dart';
 import '../../logic/model/fav_history/fav_history.dart';
 import '../../logic/model/feed/datum.dart';
 import '../../logic/model/feed/user_action.dart';
@@ -172,6 +173,19 @@ class FeedController extends CommonController {
   void onFav() {
     Datum data = (feedState.value as Success).response;
     GStorage.favFeed.put(id, getFeed(data));
+    // 收藏落本地后立刻把并集推到 WebDAV，多设备之间不用再手动点「备份收藏」
+    syncFavToCloud();
+  }
+
+  /// 静默上传收藏（未配置 WebDAV 时直接跳过，不打扰用户）
+  Future<void> syncFavToCloud() async {
+    final client = FavCloudSync.clientFromSettings();
+    if (client == null) return;
+    try {
+      await FavCloudSync.backupFav(client);
+    } catch (e) {
+      debugPrint('[fav auto sync] failed: $e');
+    }
   }
 
   FavHistoryItem getFeed(Datum data) {

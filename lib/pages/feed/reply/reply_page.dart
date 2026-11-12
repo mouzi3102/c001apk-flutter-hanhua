@@ -24,6 +24,7 @@ import '../../../pages/feed/reply/emoji_panel.dart';
 import '../../../pages/feed/reply/reply_dialog.dart' show ReplyType;
 import '../../../pages/feed/reply/toolbar_icon_button.dart';
 import '../../../utils/extensions.dart';
+import '../../../utils/emoji_text_controller.dart';
 import '../../../utils/oss/aliyunoss_client.dart';
 import '../../../utils/oss/aliyunoss_config.dart';
 import '../../../utils/oss_util.dart';
@@ -57,7 +58,7 @@ class _ReplyPageState extends State<ReplyPage>
     with SingleTickerProviderStateMixin {
   late final _focusNode = FocusNode();
   late final _controller = ChatBottomPanelContainerController<PanelType>();
-  late final _replyContentController = TextEditingController(
+  late final _replyContentController = EmojiTextEditingController(
       text: widget.targetType == 'tag' ? '#${widget.title}# ' : null);
   // PanelType _currentPanelType = PanelType.none;
   bool _readOnly = false;

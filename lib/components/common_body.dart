@@ -7,14 +7,66 @@ import '../logic/model/feed/datum.dart';
 import '../logic/state/loading_state.dart';
 import '../pages/common/common_controller.dart';
 
-Widget _bodyState(String text, Function() onTap) {
-  return GestureDetector(
-    onTap: onTap,
-    child: Container(
-      alignment: Alignment.center,
-      padding: const EdgeInsets.all(10.0),
-      child: Text(text),
-    ),
+/// 空态 / 错误态占位：自身可滚动，所以列表页即使加载失败也能下拉刷新
+Widget _bodyState(
+  String text,
+  Function() onTap, {
+  IconData? icon,
+  String? hint,
+}) {
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      return SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 32.0,
+                vertical: 24.0,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (icon != null) ...[
+                    Icon(
+                      icon,
+                      size: 56,
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  Text(
+                    text,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 15),
+                  ),
+                  if (hint != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      hint,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: onTap,
+                    child: const Text('点击重试'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    },
   );
 }
 
@@ -25,30 +77,21 @@ Widget commonBody(
   dynamic uid,
 }) {
   return Obx(
-    () => commonController.loadingState.value is Success
-        ? RefreshIndicator(
-            key: commonController.refreshKey,
-            onRefresh: () async {
-              commonController.onReset();
-              await commonController.onGetData();
-              // 刷新完成后恢复胶囊导航为展开态
-              commonController.returnTopController?.setNavExpanded(true);
-            },
-            child: buildBody(
-              commonController,
-              isHomeCard: isHomeCard,
-              isReply2Reply: isReply2Reply,
-              uid: uid,
-            ),
-          )
-        : Center(
-            child: buildBody(
-              commonController,
-              isHomeCard: isHomeCard,
-              isReply2Reply: isReply2Reply,
-              uid: uid,
-            ),
-          ),
+    () => RefreshIndicator(
+      key: commonController.refreshKey,
+      onRefresh: () async {
+        commonController.onReset();
+        await commonController.onGetData();
+        // 刷新完成后恢复胶囊导航为展开态
+        commonController.returnTopController?.setNavExpanded(true);
+      },
+      child: buildBody(
+        commonController,
+        isHomeCard: isHomeCard,
+        isReply2Reply: isReply2Reply,
+        uid: uid,
+      ),
+    ),
   );
 }
 
@@ -72,6 +115,8 @@ Widget buildBody(
           commonController.setLoadingState(LoadingState.loading());
           commonController.onGetData(true);
         },
+        icon: Icons.inbox_outlined,
+        hint: '下拉可刷新',
       );
     case Error():
       return _bodyState(
@@ -81,6 +126,8 @@ Widget buildBody(
           commonController.setLoadingState(LoadingState.loading());
           commonController.onGetData(true);
         },
+        icon: Icons.wifi_off_rounded,
+        hint: '下拉可重新加载',
       );
     case Success():
       var dataList = (commonController.loadingState.value as Success).response
