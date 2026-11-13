@@ -232,8 +232,8 @@ class _UserPageState extends State<UserPage> {
           flexibleSpace: _userController.scrollRatio.value == 1
               ? Container(
                   decoration: BoxDecoration(
-                    gradient:
-                        AppTheme.appBarGradient(Theme.of(context).brightness),
+                    gradient: AppTheme.appBarGradient(
+                        Theme.of(context).brightness),
                   ),
                 )
               : null,
@@ -314,7 +314,9 @@ class _UserPageState extends State<UserPage> {
                               value: item,
                               child: item == UserMenuItem.Block
                                   ? Text(
-                                      _userController.isBlocked ? '取消屏蔽' : '屏蔽',
+                                      _userController.isBlocked
+                                          ? '取消屏蔽'
+                                          : '屏蔽',
                                     )
                                   : Text(MenuLabels.of(item)),
                             ))

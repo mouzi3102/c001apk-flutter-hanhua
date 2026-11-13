@@ -259,8 +259,7 @@ class _MessagePageState extends State<MessagePage>
                             ),
                           );
                         } else if (index == 1) {
-                          return messageSeconfCard(
-                              GlobalData().isLogin, context);
+                          return messageSeconfCard(GlobalData().isLogin, context);
                         } else if (index >= 2 && index <= 6) {
                           return Obx(
                             () => messageThirdCard(
@@ -287,8 +286,7 @@ class _MessagePageState extends State<MessagePage>
                         }
                         return const SizedBox();
                       },
-                      separatorBuilder: (_, index) =>
-                          const SizedBox(height: 10),
+                      separatorBuilder: (_, index) => const SizedBox(height: 10),
                     ),
                   ),
                   if (GlobalData().isLogin)

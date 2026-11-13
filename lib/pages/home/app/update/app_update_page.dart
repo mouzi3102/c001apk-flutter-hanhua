@@ -78,8 +78,8 @@ class _AppUpdatePageState extends State<AppUpdatePage> {
           }
         }
       } else {
-        setState(() =>
-            _loadingState = LoadingState.error('状态码：${response.statusCode}'));
+        setState(() => _loadingState =
+            LoadingState.error('状态码：${response.statusCode}'));
       }
     } catch (e) {
       setState(() => _loadingState = LoadingState.error(e.toString()));
