@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 
 import '../../logic/backup/fav_cloud_sync.dart';
@@ -12,6 +13,7 @@ import '../../logic/network/network_repo.dart';
 import '../../logic/state/loading_state.dart';
 import '../../pages/common/common_controller.dart';
 import '../../pages/feed/feed_page.dart' show ReplySortType;
+import '../../utils/error_util.dart';
 import '../../utils/extensions.dart';
 import '../../utils/storage_util.dart';
 
@@ -177,14 +179,20 @@ class FeedController extends CommonController {
     syncFavToCloud();
   }
 
-  /// 静默上传收藏（未配置 WebDAV 时直接跳过，不打扰用户）
+  /// 收藏后自动同步：失败不再静默（否则用户根本感知不到有没有同步）
   Future<void> syncFavToCloud() async {
     final client = FavCloudSync.clientFromSettings();
-    if (client == null) return;
+    if (client == null) {
+      // 没配置 WebDAV 时提示一次来源，避免用户以为功能没生效
+      SmartDialog.showToast('未配置 WebDAV，本次仅保存到本地');
+      return;
+    }
     try {
-      await FavCloudSync.backupFav(client);
+      final r = await FavCloudSync.autoSync(client);
+      SmartDialog.showToast('收藏已同步云端（合并后 ${r.mergedCount} 条）');
     } catch (e) {
       debugPrint('[fav auto sync] failed: $e');
+      SmartDialog.showToast('收藏云同步失败：${friendlyError(e)}');
     }
   }
 

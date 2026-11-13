@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../components/footer.dart';
+import '../components/small_refresh_indicator.dart';
 import '../components/item_card.dart';
 import '../logic/model/feed/datum.dart';
 import '../logic/state/loading_state.dart';
@@ -77,8 +78,8 @@ Widget commonBody(
   dynamic uid,
 }) {
   return Obx(
-    () => RefreshIndicator(
-      key: commonController.refreshKey,
+    () => SmallRefreshIndicator(
+      indicatorKey: commonController.refreshKey,
       onRefresh: () async {
         commonController.onReset();
         await commonController.onGetData();

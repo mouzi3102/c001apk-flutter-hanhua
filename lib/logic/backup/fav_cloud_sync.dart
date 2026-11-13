@@ -75,6 +75,13 @@ class FavCloudSync {
     return merged;
   }
 
+  /// 自动同步：云端有文件就双向合并；没有就先建一份（避免「首次进入什么都没发生」）
+  static Future<FavBackupResult> autoSync(WebDavClient client) async {
+    final FavBackupResult? restored = await restoreFav(client);
+    if (restored != null) return restored;
+    return backupFav(client);
+  }
+
   /// 备份收藏：GET 云端（若有）→ 云端∪本地 → PUT 回云端
   static Future<FavBackupResult> backupFav(WebDavClient client) async {
     final local = collectLocalFav();

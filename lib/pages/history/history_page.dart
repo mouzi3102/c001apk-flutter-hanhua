@@ -47,17 +47,20 @@ class _HistoryPageState extends State<HistoryPage> {
     }
   }
 
-  /// 进入收藏页时的静默同步：未配置 WebDAV 就跳过，不弹提示
+  /// 进入收藏页时的自动同步：未配置 WebDAV 就跳过；结果明确提示，
+  /// 否则静默失败用户完全感知不到（上一版就是这个问题）。
   Future<void> _autoSyncFav() async {
     final client = FavCloudSync.clientFromSettings();
     if (client == null) return;
     try {
-      final r = await FavCloudSync.restoreFav(client);
-      if (r != null && mounted) {
-        _controller.refresh();
-      }
+      final r = await FavCloudSync.autoSync(client);
+      if (!mounted) return;
+      _controller.refresh();
+      SmartDialog.showToast(
+          '收藏已同步：云端 ${r.cloudCount} / 本地 ${r.localCount} / 合并后 ${r.mergedCount} 条');
     } catch (e) {
-      debugPrint('[fav auto sync] failed: $e');
+      if (!mounted) return;
+      SmartDialog.showToast('收藏自动同步失败：$e');
     }
   }
 
