@@ -8,6 +8,7 @@ import 'package:get/get_navigation/src/dialog/dialog_route.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../components/cards/feed_reply_card.dart';
+import '../../../components/small_refresh_indicator.dart';
 import '../../components/cards/icon_mini_scroll_card.dart';
 import '../../components/feed_article_body.dart';
 import '../../components/footer.dart';
@@ -89,9 +90,8 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
   }
 
   late final String _random = DeviceUtil.randHexString(8);
-  late final Datum? _preloadedData = Get.arguments is Map
-      ? Get.arguments['datum'] as Datum?
-      : null;
+  late final Datum? _preloadedData =
+      Get.arguments is Map ? Get.arguments['datum'] as Datum? : null;
   late final _feedController = Get.put(
     FeedController(
       id: _id,
@@ -182,8 +182,7 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
                         if (data.targetRow != null ||
                             !data.relationRows.isNullOrEmpty)
                           Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16),
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: Wrap(
                               spacing: 5.0,
                               runSpacing: 5.0,
@@ -468,22 +467,22 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
                   curve: Curves.easeInOut,
                 )),
                 child: FrostedFAB(
-            tooltip: '回复',
-            onPressed: () {
-              _onReply(
-                ReplyType.feed,
-                _feedController.id,
-                _feedController.feedUsername,
-                null,
-              );
-            },
-            child: Icon(
-              Icons.reply,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? AppTheme.darkPrimary
-                  : AppTheme.lightPrimary,
-            ),
-          ),
+                  tooltip: '回复',
+                  onPressed: () {
+                    _onReply(
+                      ReplyType.feed,
+                      _feedController.id,
+                      _feedController.feedUsername,
+                      null,
+                    );
+                  },
+                  child: Icon(
+                    Icons.reply,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppTheme.darkPrimary
+                        : AppTheme.lightPrimary,
+                  ),
+                ),
               )
             : const SizedBox(),
       ),
@@ -497,15 +496,13 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
             foregroundColor:
                 AppTheme.appBarForeground(Theme.of(context).brightness),
             titleTextStyle: TextStyle(
-              color:
-                  AppTheme.appBarForeground(Theme.of(context).brightness),
+              color: AppTheme.appBarForeground(Theme.of(context).brightness),
               fontSize: 18,
               fontWeight: FontWeight.w700,
             ),
             flexibleSpace: Container(
               decoration: BoxDecoration(
-                gradient:
-                    AppTheme.appBarGradient(Theme.of(context).brightness),
+                gradient: AppTheme.appBarGradient(Theme.of(context).brightness),
               ),
             ),
             titleSpacing: 0,
@@ -521,8 +518,7 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
                       width: double.infinity,
                       child: header(
                         context,
-                        (_feedController.feedState.value as Success)
-                            .response,
+                        (_feedController.feedState.value as Success).response,
                         true,
                         isHeader: true,
                       ),
@@ -592,11 +588,11 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
       ),
       body: Obx(
         () => _feedController.feedState.value is Success
-            ? RefreshIndicator(
+            ? SmallRefreshIndicator(
                 notificationPredicate: (notification) {
                   return notification.depth == 0;
                 },
-                key: _refreshKey,
+                indicatorKey: _refreshKey,
                 onRefresh: () async {
                   _feedController.onReset();
                   await _feedController.onGetData();

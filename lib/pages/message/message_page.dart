@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart' hide Response;
 
 import '../../components/cards/message_first_card.dart';
+import '../../../components/small_refresh_indicator.dart';
 import '../../components/cards/message_header_card.dart';
 import '../../components/cards/message_second_card.dart';
 import '../../components/cards/message_third_card.dart';
@@ -230,7 +231,7 @@ class _MessagePageState extends State<MessagePage>
           ),
           const Divider(height: 1),
           Expanded(
-            child: RefreshIndicator(
+            child: SmallRefreshIndicator(
               onRefresh: () async {
                 if (GlobalData().isLogin) {
                   _isRefreshing = true;
@@ -258,7 +259,8 @@ class _MessagePageState extends State<MessagePage>
                             ),
                           );
                         } else if (index == 1) {
-                          return messageSeconfCard(GlobalData().isLogin, context);
+                          return messageSeconfCard(
+                              GlobalData().isLogin, context);
                         } else if (index >= 2 && index <= 6) {
                           return Obx(
                             () => messageThirdCard(
@@ -285,7 +287,8 @@ class _MessagePageState extends State<MessagePage>
                         }
                         return const SizedBox();
                       },
-                      separatorBuilder: (_, index) => const SizedBox(height: 10),
+                      separatorBuilder: (_, index) =>
+                          const SizedBox(height: 10),
                     ),
                   ),
                   if (GlobalData().isLogin)

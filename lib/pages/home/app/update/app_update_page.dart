@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart' hide Response;
 
 import '../../../../components/cards/app_update_card.dart';
+import '../../../../components/small_refresh_indicator.dart';
 import '../../../../logic/network/network_repo.dart';
 import '../../../../logic/model/check_update/check_update.dart';
 import '../../../../logic/model/check_update/datum.dart';
@@ -77,8 +78,8 @@ class _AppUpdatePageState extends State<AppUpdatePage> {
           }
         }
       } else {
-        setState(() => _loadingState =
-            LoadingState.error('状态码：${response.statusCode}'));
+        setState(() =>
+            _loadingState = LoadingState.error('状态码：${response.statusCode}'));
       }
     } catch (e) {
       setState(() => _loadingState = LoadingState.error(e.toString()));
@@ -148,7 +149,7 @@ class _AppUpdatePageState extends State<AppUpdatePage> {
         ),
       ),
       body: _loadingState is Success
-          ? RefreshIndicator(
+          ? SmallRefreshIndicator(
               onRefresh: () async {
                 await _getData();
               },

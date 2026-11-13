@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 
 import '../../../components/frosted_fab.dart';
+import '../../../components/small_refresh_indicator.dart';
 import '../../../pages/home/app/app_list_controller.dart';
 import '../../../pages/home/return_top_controller.dart';
 import '../../../utils/app_theme.dart';
@@ -89,8 +90,8 @@ class _AppListPageState extends State<AppListPage>
   Widget build(BuildContext context) {
     super.build(context);
     return _appListController.obx(
-      (data) => RefreshIndicator(
-        key: _refreshKey,
+      (data) => SmallRefreshIndicator(
+        indicatorKey: _refreshKey,
         onRefresh: () async {
           await _appListController.onReload(true);
         },

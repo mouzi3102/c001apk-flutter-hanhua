@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../components/cards/user_info_card.dart';
+import '../../../components/small_refresh_indicator.dart';
 import '../../components/footer.dart';
 import '../../components/item_card.dart';
 import '../../logic/model/feed/datum.dart';
@@ -170,7 +171,7 @@ class _UserPageState extends State<UserPage> {
       body: Stack(
         children: [
           Obx(
-            () => RefreshIndicator(
+            () => SmallRefreshIndicator(
               notificationPredicate: (notification) {
                 final double offset = notification.metrics.pixels;
                 if (offset >= 0) {
@@ -231,8 +232,8 @@ class _UserPageState extends State<UserPage> {
           flexibleSpace: _userController.scrollRatio.value == 1
               ? Container(
                   decoration: BoxDecoration(
-                    gradient: AppTheme.appBarGradient(
-                        Theme.of(context).brightness),
+                    gradient:
+                        AppTheme.appBarGradient(Theme.of(context).brightness),
                   ),
                 )
               : null,
@@ -313,9 +314,7 @@ class _UserPageState extends State<UserPage> {
                               value: item,
                               child: item == UserMenuItem.Block
                                   ? Text(
-                                      _userController.isBlocked
-                                          ? '取消屏蔽'
-                                          : '屏蔽',
+                                      _userController.isBlocked ? '取消屏蔽' : '屏蔽',
                                     )
                                   : Text(MenuLabels.of(item)),
                             ))

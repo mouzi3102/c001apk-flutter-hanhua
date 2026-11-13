@@ -9,6 +9,7 @@ class SmallRefreshIndicator extends StatefulWidget {
     required this.onRefresh,
     required this.child,
     this.indicatorKey,
+    this.notificationPredicate,
     this.size = 20.0,
     this.strokeWidth = 2.2,
     this.color,
@@ -20,6 +21,9 @@ class SmallRefreshIndicator extends StatefulWidget {
 
   /// 外部可用 `RefreshIndicatorState.show()` 主动触发刷新
   final GlobalKey<RefreshIndicatorState>? indicatorKey;
+
+  /// 透传给底层 RefreshIndicator 的滚动通知过滤（如只在顶层列表生效）
+  final ScrollNotificationPredicate? notificationPredicate;
 
   final double size;
   final double strokeWidth;
@@ -55,6 +59,8 @@ class _SmallRefreshIndicatorState extends State<SmallRefreshIndicator> {
         RefreshIndicator.noSpinner(
           key: widget.indicatorKey,
           onRefresh: widget.onRefresh,
+          notificationPredicate:
+              widget.notificationPredicate ?? defaultScrollNotificationPredicate,
           onStatusChange: (status) {
             if (!mounted) return;
             if (_status != status) {
