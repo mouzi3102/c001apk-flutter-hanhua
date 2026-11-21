@@ -2,6 +2,12 @@
 
 A new Flutter project.
 
+## 版本 / Releases
+
+- 最新：**16.7.1（versionCode 81）**，APK 见 [`releases/c001apk-flutter-16.7.1.apk`](releases/c001apk-flutter-16.7.1.apk)
+- 16.7.0：修复回帖输入框插入表情后再打字被拆成文字、退格删不掉的问题
+- 16.7.1：浏览历史支持 WebDAV 双向同步（每次进入历史记录页自动同步，支持删除/清空同步）
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.

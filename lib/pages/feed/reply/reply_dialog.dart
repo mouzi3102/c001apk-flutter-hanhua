@@ -54,7 +54,7 @@ class ReplyDialog extends StatefulWidget {
 }
 
 class _ReplyDialogState extends State<ReplyDialog> with WidgetsBindingObserver {
-  late final TextEditingController _replyContentController =
+  late final EmojiTextEditingController _replyContentController =
       EmojiTextEditingController(
           text: widget.targetType == 'tag' ? '#${widget.title}# ' : null);
   final FocusNode _replyContentFocusNode = FocusNode();
@@ -157,7 +157,7 @@ class _ReplyDialogState extends State<ReplyDialog> with WidgetsBindingObserver {
               if (widget.targetType != null) 'targetType': widget.targetType,
               if (widget.targetType == 'apk') 'type': 'comment',
               if (widget.targetId != null) 'targetId': widget.targetId,
-              'message': _replyContentController.text,
+              'message': _replyContentController.outboundText,
               'status': _checkBoxValue ? -1 : 1,
               'pic': _pic,
             },
@@ -178,7 +178,7 @@ class _ReplyDialogState extends State<ReplyDialog> with WidgetsBindingObserver {
       } else {
         Response response = await NetworkRepo.postReply(
           FormData.fromMap({
-            'message': _replyContentController.text,
+            'message': _replyContentController.outboundText,
             'replyAndForward': _checkBoxValue ? 1 : 0,
             'pic': _pic,
           }),
@@ -284,15 +284,9 @@ class _ReplyDialogState extends State<ReplyDialog> with WidgetsBindingObserver {
   }
 
   void _onChooseEmote(String emoji) {
-    final int cursorPosition = _replyContentController.selection.baseOffset;
-    final String currentText = _replyContentController.text;
-    final String newText = currentText.substring(0, cursorPosition) +
-        emoji +
-        currentText.substring(cursorPosition);
-    _replyContentController.value = TextEditingValue(
-      text: newText,
-      selection: TextSelection.collapsed(offset: cursorPosition + emoji.length),
-    );
+    // 统一走控制器的占位字符插入：1 个表情 = 1 个字符，
+    // 光标、退格、后续输入都不会再错位（旧实现直接拼 [xx] 文本会拆字）
+    _replyContentController.insertEmoji(emoji);
   }
 
   @override

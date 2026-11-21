@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../components/cards/feed_card.dart';
 import '../../components/cards/search_history_card.dart';
 import '../../logic/backup/fav_cloud_sync.dart';
+import '../../logic/backup/history_cloud_sync.dart';
 import '../../logic/backup/search_history_sync.dart';
 import '../../logic/backup/webdav_client.dart';
 import '../../pages/history/history_controller.dart';
@@ -44,6 +45,26 @@ class _HistoryPageState extends State<HistoryPage> {
     // 进入「本地收藏」即静默做一次双向同步（云端∪本地 → 写回本地 & 云端）
     if (_type == HistoryType.Favorite) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _autoSyncFav());
+    }
+    // 每次进入「历史记录」都做一次历史同步，保证多设备看到的是同一份记录
+    if (_type == HistoryType.History) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _autoSyncHistory());
+    }
+  }
+
+  /// 进入历史页时的自动同步：未配置 WebDAV 就跳过。
+  Future<void> _autoSyncHistory() async {
+    final client = HistoryCloudSync.clientFromSettings();
+    if (client == null) return;
+    try {
+      final r = await HistoryCloudSync.autoSync(client);
+      if (!mounted || r == null) return;
+      _controller.refresh();
+      SmartDialog.showToast(
+          '历史已同步：云端 ${r.cloudCount} / 本地 ${r.localCount} / 合并后 ${r.mergedCount} 条，新增 ${r.added}${r.skipped > 0 ? '，${r.skipped} 条损坏已跳过' : ''}');
+    } catch (e) {
+      if (!mounted) return;
+      SmartDialog.showToast('历史自动同步失败：$e');
     }
   }
 
@@ -121,7 +142,7 @@ class _HistoryPageState extends State<HistoryPage> {
       } else {
         _controller.refresh();
         SmartDialog.showToast(
-            '同步完成：云端 ${r.cloudCount} / 本地 ${r.localCount} / 合并后 ${r.mergedCount} 条，新增 ${r.added}');
+            '同步完成：云端 ${r.cloudCount} / 本地 ${r.localCount} / 合并后 ${r.mergedCount} 条，新增 ${r.added}${r.skipped > 0 ? '，${r.skipped} 条损坏已跳过' : ''}');
       }
     } catch (e) {
       SmartDialog.dismiss();
@@ -142,6 +163,46 @@ class _HistoryPageState extends State<HistoryPage> {
     } catch (e) {
       SmartDialog.dismiss();
       SmartDialog.showToast('搜索记录同步失败：$e');
+    }
+  }
+
+  /// 手动同步历史：云端∪本地 → 写回本地 & 云端
+  Future<void> _syncHistory() async {
+    final client = HistoryCloudSync.clientFromSettings();
+    if (client == null) {
+      SmartDialog.showToast('请先在设置中配置 WebDAV');
+      return;
+    }
+    SmartDialog.showLoading(msg: '正在同步历史记录…');
+    try {
+      final r = await HistoryCloudSync.autoSync(client);
+      SmartDialog.dismiss();
+      if (r == null) {
+        SmartDialog.showToast('正在同步中，请稍候');
+      } else {
+        _controller.refresh();
+        SmartDialog.showToast(
+            '同步完成：云端 ${r.cloudCount} / 本地 ${r.localCount} / 合并后 ${r.mergedCount} 条，新增 ${r.added}${r.skipped > 0 ? '，${r.skipped} 条损坏已跳过' : ''}');
+      }
+    } catch (e) {
+      SmartDialog.dismiss();
+      SmartDialog.showToast('同步失败：$e');
+    }
+  }
+
+  /// 清空历史（含云端），否则下次进页面又会把云端旧记录拉回来
+  Future<void> _clearAllHistory() async {
+    _controller.clearAll();
+    final client = HistoryCloudSync.clientFromSettings();
+    if (client == null) {
+      SmartDialog.showToast('已清空本机历史');
+      return;
+    }
+    try {
+      await HistoryCloudSync.clearRemote(client);
+      SmartDialog.showToast('已清空本机与云端历史');
+    } catch (e) {
+      SmartDialog.showToast('本机已清空，云端清空失败：$e');
     }
   }
 
@@ -326,10 +387,21 @@ class _HistoryPageState extends State<HistoryPage> {
     } else if (_controller.dataList.isNotEmpty) {
       baseActions.add(
         IconButton(
+          onPressed: _syncHistory,
+          icon: const Icon(Icons.cloud_sync_outlined),
+          tooltip: '通过 WebDAV 同步历史',
+        ),
+      );
+      baseActions.add(
+        IconButton(
           onPressed: () => showDialog(
             context: context,
             builder: (context) => AlertDialog(
               title: const Text('确定清除全部浏览历史？'),
+              content: Text(
+                  HistoryCloudSync.clientFromSettings() == null
+                      ? '将清空本机全部浏览历史。'
+                      : '将清空本机与云端的全部浏览历史（其他设备同步后也会清空）。'),
               actions: [
                 TextButton(
                   onPressed: () => Get.back(),
@@ -338,7 +410,7 @@ class _HistoryPageState extends State<HistoryPage> {
                 TextButton(
                   onPressed: () {
                     Get.back();
-                    _controller.clearAll();
+                    _clearAllHistory();
                   },
                   child: const Text('确定'),
                 ),
@@ -415,7 +487,17 @@ class _HistoryPageState extends State<HistoryPage> {
                     isHistory: true,
                     data: visible[index],
                     onDelete: (id) {
+                      final key = '${visible[index].id}';
                       _controller.onDeleteFeed(visible[index].id);
+                      // 历史页的单条删除要留墓碑并立刻推云端，否则下次同步会回灌
+                      if (_type == HistoryType.History) {
+                        final client = HistoryCloudSync.clientFromSettings();
+                        if (client != null) {
+                          HistoryCloudSync.markDeleted(key).then((_) {
+                            HistoryCloudSync.autoSync(client);
+                          });
+                        }
+                      }
                     },
                   ),
                   separatorBuilder: (_, index) => const SizedBox(height: 10),

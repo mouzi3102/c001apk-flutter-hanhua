@@ -600,7 +600,7 @@ class _ReplyPageState extends State<ReplyPage>
               if (widget.targetType != null) 'targetType': widget.targetType,
               if (widget.targetType == 'apk') 'type': 'comment',
               if (widget.targetId != null) 'targetId': widget.targetId,
-              'message': _replyContentController.text,
+              'message': _replyContentController.outboundText,
               'status': _checkBoxValue ? -1 : 1,
               'pic': _pic,
             },
@@ -621,7 +621,7 @@ class _ReplyPageState extends State<ReplyPage>
       } else {
         Response response = await NetworkRepo.postReply(
           FormData.fromMap({
-            'message': _replyContentController.text,
+            'message': _replyContentController.outboundText,
             'replyAndForward': _checkBoxValue ? 1 : 0,
             'pic': _pic,
           }),
@@ -732,14 +732,8 @@ class _ReplyPageState extends State<ReplyPage>
       _enablePublish = true;
       _publishStream.add(true);
     }
-    final int cursorPosition = _replyContentController.selection.baseOffset;
-    final String currentText = _replyContentController.text;
-    final String newText = currentText.substring(0, cursorPosition) +
-        emoji +
-        currentText.substring(cursorPosition);
-    _replyContentController.value = TextEditingValue(
-      text: newText,
-      selection: TextSelection.collapsed(offset: cursorPosition + emoji.length),
-    );
+    // 统一走控制器的占位字符插入：1 个表情 = 1 个字符，
+    // 光标、退格、后续输入都不会再错位（旧实现直接拼 [xx] 文本会拆字）
+    _replyContentController.insertEmoji(emoji);
   }
 }
