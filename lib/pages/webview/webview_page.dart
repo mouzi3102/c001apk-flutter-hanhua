@@ -31,6 +31,10 @@ class _WebviewPageState extends State<WebviewPage> {
 
   InAppWebViewController? _webViewController;
 
+  /// 外部链接确认框是否正在显示：网页里多个链接/重定向会连续触发
+  /// shouldOverrideUrlLoading，不加这个门闩会叠出一串提示框
+  bool _externalLinkDialogShowing = false;
+
   @override
   void initState() {
     super.initState();
@@ -183,15 +187,35 @@ class _WebviewPageState extends State<WebviewPage> {
           var url = navigationAction.request.url!.toString();
 
           if (!url.startsWith('http')) {
-            var snackBar = SnackBar(
-              content: const Text('当前网页将要打开外部链接，是否打开'),
-              showCloseIcon: true,
-              action: SnackBarAction(
-                label: '打开',
-                onPressed: () => Utils.launchURL(url),
-              ),
-            );
-            ScaffoldMessenger.of(context).showSnackBar(snackBar);
+            // 之前的 SnackBar 方案有两个坑：
+            // 1) 点「打开」后 SnackBar 不主动收起，跳出 App 再回来仍挂在界面上；
+            // 2) 网页连续触发多次跳转时会排队叠出好几条提示。
+            // 改为模态对话框：点任意按钮立即 pop，且加门闩只允许一个实例。
+            if (!_externalLinkDialogShowing) {
+              _externalLinkDialogShowing = true;
+              final bool? confirmed = await showDialog<bool>(
+                context: context,
+                barrierDismissible: true,
+                builder: (dialogContext) => AlertDialog(
+                  title: const Text('打开外部链接'),
+                  content: Text('当前网页将要打开外部链接，是否打开\n\n$url'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(false),
+                      child: const Text('取消'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(true),
+                      child: const Text('打开'),
+                    ),
+                  ],
+                ),
+              );
+              _externalLinkDialogShowing = false;
+              if (confirmed == true && mounted) {
+                Utils.launchURL(url);
+              }
+            }
             return NavigationActionPolicy.CANCEL;
           }
 
