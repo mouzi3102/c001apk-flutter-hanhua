@@ -198,7 +198,7 @@ class _WebviewPageState extends State<WebviewPage> {
                 barrierDismissible: true,
                 builder: (dialogContext) => AlertDialog(
                   title: const Text('打开外部链接'),
-                  content: Text('当前网页将要打开外部链接，是否打开\n\n$url'),
+                  content: const Text('当前网页将要打开外部链接，是否打开'),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(dialogContext).pop(false),
