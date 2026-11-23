@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import 'app_loading_indicator.dart';
+
 /// 下拉刷新：手势与触发逻辑仍由系统 [RefreshIndicator.noSpinner] 负责，
-/// 只是把原生的大圆圈（`RefreshProgressIndicator`，固定 41dp）整体缩放，
-/// 外观（白色圆底 + 投影 + 圆弧）与系统完全一致，直径缩到约 25dp。
+/// 指示器换成全站统一的 [AppLoadingIndicator]（纯圆弧、无白底无阴影），
+/// 与页面加载时的圆环保持一致，只是尺寸更小。
 class SmallRefreshIndicator extends StatefulWidget {
   const SmallRefreshIndicator({
     super.key,
@@ -10,7 +12,7 @@ class SmallRefreshIndicator extends StatefulWidget {
     required this.child,
     this.indicatorKey,
     this.notificationPredicate,
-    this.scale = 0.62,
+    this.size = 22,
     this.topPadding = 6.0,
   });
 
@@ -23,8 +25,8 @@ class SmallRefreshIndicator extends StatefulWidget {
   /// 透传给底层 RefreshIndicator 的滚动通知过滤（如只在顶层列表生效）
   final ScrollNotificationPredicate? notificationPredicate;
 
-  /// 相对原生 41dp 指示器的缩放比例
-  final double scale;
+  /// 指示器直径
+  final double size;
   final double topPadding;
 
   @override
@@ -48,7 +50,6 @@ class _SmallRefreshIndicatorState extends State<SmallRefreshIndicator> {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme scheme = Theme.of(context).colorScheme;
     return Stack(
       children: [
         RefreshIndicator.noSpinner(
@@ -71,15 +72,7 @@ class _SmallRefreshIndicatorState extends State<SmallRefreshIndicator> {
             right: 0,
             child: IgnorePointer(
               child: Center(
-                // 直接复用系统原生指示器，只做整体缩放：视觉与原生一致，尺寸变小
-                child: Transform.scale(
-                  scale: widget.scale,
-                  child: RefreshProgressIndicator(
-                    elevation: 3,
-                    color: scheme.primary,
-                    backgroundColor: Theme.of(context).canvasColor,
-                  ),
-                ),
+                child: AppLoadingIndicator(size: widget.size),
               ),
             ),
           ),

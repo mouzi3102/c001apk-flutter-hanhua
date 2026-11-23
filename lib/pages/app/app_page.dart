@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:extended_nested_scroll_view/extended_nested_scroll_view.dart';
 import 'package:flutter/material.dart';
+import '../../components/app_loading_indicator.dart';
 import 'package:get/get.dart' hide Response;
 import 'package:get/get_navigation/src/dialog/dialog_route.dart';
 import 'package:share_plus/share_plus.dart';
@@ -107,7 +108,7 @@ class _AppPageState extends State<AppPage> with TickerProviderStateMixin {
               : null,
         );
     }
-    return const CircularProgressIndicator();
+    return const AppLoadingIndicator();
   }
 
   /// 点击胶囊刷新按钮：回到顶部并刷新当前 tab

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'app_loading_indicator.dart';
 
 import '../logic/state/loading_state.dart';
 
@@ -26,7 +27,7 @@ Widget footerWidget(LoadingState footerState, Function() onReload) {
         height: 80,
         alignment: Alignment.center,
         padding: const EdgeInsets.all(10.0),
-        child: const CircularProgressIndicator(),
+        child: const AppLoadingIndicator(),
       );
   }
 }

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import '../../components/app_loading_indicator.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -81,7 +82,7 @@ class _UserPageState extends State<UserPage> {
           onFollow: _userController.onFollow,
         );
     }
-    return const CircularProgressIndicator();
+    return const AppLoadingIndicator();
   }
 
   Widget _buildUserFeed(LoadingState loadingState) {
@@ -160,7 +161,7 @@ class _UserPageState extends State<UserPage> {
         height: 80,
         alignment: Alignment.center,
         padding: const EdgeInsets.all(10.0),
-        child: const CircularProgressIndicator(),
+        child: const AppLoadingIndicator(),
       ),
     );
   }

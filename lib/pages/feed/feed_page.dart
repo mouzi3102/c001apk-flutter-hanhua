@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../../components/app_loading_indicator.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
@@ -227,7 +228,7 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
                 separatorBuilder: (_, index) => const SizedBox(height: 12),
               );
     }
-    return const CircularProgressIndicator();
+    return const AppLoadingIndicator();
   }
 
   Widget _buildPinWidget() {
@@ -450,7 +451,7 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
         height: 80,
         alignment: Alignment.center,
         padding: const EdgeInsets.all(10.0),
-        child: const CircularProgressIndicator(),
+        child: const AppLoadingIndicator(),
       ),
     );
   }

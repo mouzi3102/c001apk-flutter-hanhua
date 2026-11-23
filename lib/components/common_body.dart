@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'app_loading_indicator.dart';
 import 'package:get/get.dart';
 
 import '../components/footer.dart';
@@ -183,6 +184,6 @@ Widget buildBody(
     height: 80,
     alignment: Alignment.center,
     padding: const EdgeInsets.all(10.0),
-    child: const CircularProgressIndicator(),
+    child: const AppLoadingIndicator(),
   );
 }

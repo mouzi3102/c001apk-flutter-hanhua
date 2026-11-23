@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import '../../../../components/app_loading_indicator.dart';
 import 'package:get/get.dart' hide Response;
 
 import '../../../../components/cards/app_update_card.dart';
@@ -134,7 +135,7 @@ class _AppUpdatePageState extends State<AppUpdatePage> {
           separatorBuilder: (_, index) => const SizedBox(height: 10),
         );
     }
-    return const CircularProgressIndicator();
+    return const AppLoadingIndicator();
   }
 
   @override
