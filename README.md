@@ -4,7 +4,8 @@ A new Flutter project.
 
 ## 版本 / Releases
 
-- 最新：**16.7.3（versionCode 83）**，APK 见 [`releases/c001apk-flutter-16.7.3.apk`](releases/c001apk-flutter-16.7.3.apk)
+- 最新：**16.7.4（versionCode 84）**，APK 见 [`releases/c001apk-flutter-16.7.4.apk`](releases/c001apk-flutter-16.7.4.apk)
+- 16.7.4：统一顶部加载动画为纯圆弧细指示器并缩小尺寸（下拉刷新去掉白底药丸与阴影）
 - 16.7.3：外部链接提示框不再显示原始 URL（超长 snssdk schema 会撑满屏幕）
 - 16.7.2：修复网页「打开外部链接」提示不消失（改为模态对话框，点按钮即关闭）
 - 16.7.0：修复回帖输入框插入表情后再打字被拆成文字、退格删不掉的问题
