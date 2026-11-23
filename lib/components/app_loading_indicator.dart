@@ -32,3 +32,27 @@ class AppLoadingIndicator extends StatelessWidget {
     );
   }
 }
+
+/// 整页加载占位：把 [AppLoadingIndicator] 贴在内容顶部（而不是屏幕正中），
+/// 数据回来后内容从顶部开始渲染，视觉上不会出现"圆环从中间跳到顶部"。
+class PageLoadingIndicator extends StatelessWidget {
+  const PageLoadingIndicator({
+    super.key,
+    this.topPadding = 20,
+    this.size = 22,
+  });
+
+  final double topPadding;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(top: topPadding),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: AppLoadingIndicator(size: size),
+      ),
+    );
+  }
+}

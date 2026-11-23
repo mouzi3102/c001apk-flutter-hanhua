@@ -108,7 +108,7 @@ class _AppPageState extends State<AppPage> with TickerProviderStateMixin {
               : null,
         );
     }
-    return const AppLoadingIndicator();
+    return const PageLoadingIndicator();
   }
 
   /// 点击胶囊刷新按钮：回到顶部并刷新当前 tab

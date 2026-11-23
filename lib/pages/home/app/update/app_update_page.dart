@@ -135,7 +135,7 @@ class _AppUpdatePageState extends State<AppUpdatePage> {
           separatorBuilder: (_, index) => const SizedBox(height: 10),
         );
     }
-    return const AppLoadingIndicator();
+    return const PageLoadingIndicator();
   }
 
   @override

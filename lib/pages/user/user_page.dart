@@ -82,7 +82,7 @@ class _UserPageState extends State<UserPage> {
           onFollow: _userController.onFollow,
         );
     }
-    return const AppLoadingIndicator();
+    return const PageLoadingIndicator();
   }
 
   Widget _buildUserFeed(LoadingState loadingState) {

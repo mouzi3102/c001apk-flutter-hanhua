@@ -228,7 +228,7 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
                 separatorBuilder: (_, index) => const SizedBox(height: 12),
               );
     }
-    return const AppLoadingIndicator();
+    return const PageLoadingIndicator();
   }
 
   Widget _buildPinWidget() {
