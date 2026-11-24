@@ -490,15 +490,7 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _onChooseEmote(String emoji) {
-    final int cursorPosition =
-        _chatController.editingController.selection.baseOffset;
-    final String currentText = _chatController.editingController.text;
-    final String newText = currentText.substring(0, cursorPosition) +
-        emoji +
-        currentText.substring(cursorPosition);
-    _chatController.editingController.value = TextEditingValue(
-      text: newText,
-      selection: TextSelection.collapsed(offset: cursorPosition + emoji.length),
-    );
+    // 与回帖一致：输入框里放 1 个占位字符并画成表情图，发送时再解码回 [名字]
+    _chatController.editingController.insertEmoji(emoji);
   }
 }

@@ -4,7 +4,8 @@ A new Flutter project.
 
 ## 版本 / Releases
 
-- 最新：**16.7.6（versionCode 86）**，APK 见 [`releases/c001apk-flutter-16.7.6.apk`](releases/c001apk-flutter-16.7.6.apk)
+- 最新：**16.7.7（versionCode 87）**，APK 见 [`releases/c001apk-flutter-16.7.7.apk`](releases/c001apk-flutter-16.7.7.apk)
+- 16.7.7：私信输入框表情改为图片占位（不再露出 [xx] 字面）；下拉刷新时丢弃在途的旧分页，通知列表按时间倒序，避免刷出几天前的回复
 - 16.7.6：整页加载圆环改为贴顶显示，不再居中后跳到顶部
 - 16.7.5：下拉刷新圆环不再浮在文字上（刷新时列表整体让出一条顶部空档）
 - 16.7.4：统一顶部加载动画为纯圆弧细指示器并缩小尺寸（下拉刷新去掉白底药丸与阴影）

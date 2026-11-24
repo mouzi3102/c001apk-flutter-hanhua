@@ -9,6 +9,7 @@ import '../../logic/model/login/login_response.dart';
 import '../../logic/network/network_repo.dart';
 import '../../logic/state/loading_state.dart';
 import '../../pages/common/common_controller.dart';
+import '../../utils/emoji_text_controller.dart';
 import '../../utils/extensions.dart';
 
 class ChatController extends CommonController {
@@ -18,7 +19,7 @@ class ChatController extends CommonController {
 
   final String ukey;
 
-  late final editingController = TextEditingController();
+  late final editingController = EmojiTextEditingController();
   RxBool showEmojiPanel = false.obs;
 
   @override
@@ -86,7 +87,7 @@ class ChatController extends CommonController {
         uid: uid,
         data: FormData.fromMap(
           {
-            'message': editingController.text,
+            'message': editingController.outboundText,
             if (pic != null) 'message_pic': pic,
           },
         ),

@@ -18,6 +18,10 @@ abstract class CommonController extends GetxController {
   bool isLoading = false;
   bool isEnd = false;
 
+  /// 请求代号：每次 reset（下拉刷新）自增。在途的“加载更多”返回时代号已变，
+  /// 直接丢弃，否则会把几天的旧分页拼到刚刷新的新列表里。
+  int requestSeq = 0;
+
   Rx<LoadingState> loadingState = LoadingState.loading().obs;
   Rx<LoadingState> footerState = LoadingState.empty().obs;
   GlobalKey<RefreshIndicatorState>? refreshKey;
@@ -41,7 +45,12 @@ abstract class CommonController extends GetxController {
   Future<void> onGetData([bool isRefresh = true]) async {
     if (!isLoading) {
       isLoading = true;
+      final int seq = requestSeq;
       LoadingState response = await customGetData();
+      if (seq != requestSeq) {
+        // 请求期间发生过 reset（下拉刷新），这份旧数据作废，且不碰新请求的 isLoading
+        return;
+      }
       if (response is Success) {
         List<Datum> dataList = response.response;
         firstItem ??= dataList.firstOrNull?.id.toString();
@@ -76,6 +85,8 @@ abstract class CommonController extends GetxController {
   }
 
   void onReset() {
+    requestSeq++;
+    isLoading = false;
     page = 1;
     isEnd = false;
     firstItem = null;
