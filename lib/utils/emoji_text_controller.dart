@@ -136,6 +136,9 @@ class EmojiTextEditingController extends TextEditingController {
             ? value.composing
             : TextRange.empty;
     final double emojiSize = (style?.fontSize ?? 15.0) * 1.15;
+    // 按物理像素解码，别把整张原图丢进纹理缓存
+    final int cacheSize =
+        (emojiSize * MediaQuery.of(context).devicePixelRatio).ceil();
     final List<InlineSpan> children = <InlineSpan>[];
 
     int plainStart = 0;
@@ -169,6 +172,7 @@ class EmojiTextEditingController extends TextEditingController {
               'assets/emojis/$file',
               width: emojiSize,
               height: emojiSize,
+              cacheWidth: cacheSize,
               filterQuality: FilterQuality.medium,
             ),
           ),

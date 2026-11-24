@@ -57,7 +57,7 @@ class EditableRecentChips extends StatefulWidget {
 }
 
 class _EditableRecentChipsState extends State<EditableRecentChips>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   bool _editing = false;
   late final AnimationController _wiggle = AnimationController(
     vsync: this,
@@ -75,13 +75,26 @@ class _EditableRecentChipsState extends State<EditableRecentChips>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _wiggle.dispose();
     super.dispose();
+  }
+
+  /// 退到后台 / 息屏时停掉抖动动画，省掉无意义的重绘
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_editing) return;
+    if (state == AppLifecycleState.resumed) {
+      _wiggle.repeat(reverse: true);
+    } else {
+      _wiggle.stop();
+    }
   }
 
   void _load() {
@@ -326,7 +339,7 @@ class _EditableRecentChipsState extends State<EditableRecentChips>
             math.sin(_wiggle.value * 2 * math.pi + index * 0.7) * 0.02;
         return Transform.rotate(angle: angle, child: c);
       },
-      child: child,
+      child: RepaintBoundary(child: child),
     );
   }
 
