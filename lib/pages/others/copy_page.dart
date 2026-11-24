@@ -74,32 +74,46 @@ class CopyPage extends StatelessWidget {
             ),
             Divider(height: 1, color: scheme.outlineVariant),
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-                physics: const BouncingScrollPhysics(),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 720),
-                    child: SelectionArea(
-                      child: Text.rich(
-                        TextSpan(
-                          children:
-                              _buildSpans(context, plain, TextStyle(
-                            fontSize: 18,
-                            height: 1.6,
-                            color: scheme.onSurface,
-                          ), emojiSize),
-                          style: TextStyle(
-                            fontSize: 18,
-                            height: 1.6,
-                            color: scheme.onSurface,
+              // 短文本垂直居中（单手更好点按/阅读），长文本自然从顶部开始滚动
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  const double padTop = 16;
+                  const double padBottom = 32;
+                  final double minHeight =
+                      (constraints.maxHeight - padTop - padBottom) > 0
+                          ? constraints.maxHeight - padTop - padBottom
+                          : 0;
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, padTop, 20, padBottom),
+                    physics: const BouncingScrollPhysics(),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: minHeight),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 720),
+                          child: SelectionArea(
+                            child: Text.rich(
+                              TextSpan(
+                                children:
+                                    _buildSpans(context, plain, TextStyle(
+                                  fontSize: 18,
+                                  height: 1.6,
+                                  color: scheme.onSurface,
+                                ), emojiSize),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  height: 1.6,
+                                  color: scheme.onSurface,
+                                ),
+                              ),
+                              textAlign: TextAlign.start,
+                            ),
                           ),
                         ),
-                        textAlign: TextAlign.start,
                       ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
             ),
           ],
