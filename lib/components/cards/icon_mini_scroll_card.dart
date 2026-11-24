@@ -1,7 +1,7 @@
 import 'package:c001apk_flutter/components/network_image.dart';
 import 'package:flutter/material.dart';
 
-import '../../components/self_sized_horizontal_list.dart';
+import '../../components/editable_recent_chips.dart';
 import '../../logic/model/feed/entity.dart';
 import '../../utils/extensions.dart';
 import '../../utils/utils.dart';
@@ -13,21 +13,17 @@ class IconMiniScrollCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SelfSizedHorizontalList(
-      gapSize: 10,
-      padding: null,
-      itemCount: dataList.length,
-      childBuilder: (index) {
-        return miniCardItem(
-          context,
-          dataList[index].logo ?? dataList[index].pic.orEmpty,
-          dataList[index].title.orEmpty,
-          dataList[index].url.orEmpty,
-          false,
-          false,
-        );
-      },
-    );
+    final List<RecentChip> chips = [
+      for (final e in dataList)
+        RecentChip(
+          title: e.title.orEmpty,
+          url: e.url.orEmpty,
+          logo: e.logo ?? e.pic.orEmpty,
+        ),
+    ].where((c) => c.title.isNotEmpty && c.url.isNotEmpty).toList();
+
+    // 长按进入编辑：抖动 + 删除角标 + 拖动排序 + 添加
+    return EditableRecentChips(items: chips);
   }
 }
 

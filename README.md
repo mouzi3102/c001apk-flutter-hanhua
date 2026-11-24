@@ -4,7 +4,8 @@ A new Flutter project.
 
 ## 版本 / Releases
 
-- 最新：**16.7.7（versionCode 87）**，APK 见 [`releases/c001apk-flutter-16.7.7.apk`](releases/c001apk-flutter-16.7.7.apk)
+- 最新：**16.8.0（versionCode 88）**，APK 见 [`releases/c001apk-flutter-16.8.0.apk`](releases/c001apk-flutter-16.8.0.apk)
+- 16.8.0：首页「我的常去」词条支持长按编辑：抖动动画 + 删除角标 + 拖动排序 + 自定义添加，顺序/删除/新增存本地
 - 16.7.7：私信输入框表情改为图片占位（不再露出 [xx] 字面）；下拉刷新时丢弃在途的旧分页，通知列表按时间倒序，避免刷出几天前的回复
 - 16.7.6：整页加载圆环改为贴顶显示，不再居中后跳到顶部
 - 16.7.5：下拉刷新圆环不再浮在文字上（刷新时列表整体让出一条顶部空档）
