@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
@@ -69,6 +70,17 @@ class C001APKAPP extends StatelessWidget {
         GStorage.settings.get(SettingsBoxKey.fontScale, defaultValue: 1.0);
     return GetMaterialApp(
       title: 'c001apk',
+      // 补上中文本地化：系统文本选择菜单（复制/分享/全选 等）随之为中文
+      locale: const Locale('zh', 'CN'),
+      supportedLocales: const [
+        Locale('zh', 'CN'),
+        Locale('en', 'US'),
+      ],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: GStorage.getThemeMode(),
