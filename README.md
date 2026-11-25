@@ -4,7 +4,8 @@ A new Flutter project.
 
 ## 版本 / Releases
 
-- 最新：**16.8.3（versionCode 91）**，APK 见 [`releases/c001apk-flutter-16.8.3.apk`](releases/c001apk-flutter-16.8.3.apk)
+- 最新：**16.8.4（versionCode 92）**，APK 见 [`releases/c001apk-flutter-16.8.4.apk`](releases/c001apk-flutter-16.8.4.apk)
+- 16.8.4：网络层加固——匿名 token 改为按 TTL 刷新，401/403 自动重算并重放一次；登录态失效统一拦截，自动退回匿名并提示重新登录
 - 16.8.3：长按查看页短文本垂直居中，单手更好操作；长文本仍从顶部滚动
 - 16.8.2：补全中文本地化，文本选择菜单（复制/分享/全选）不再显示英文
 - 16.8.1：长按帖子/评论的查看页表情显示成图片、排版改为左对齐限宽；编辑态抖动在后台暂停、表情图按物理像素解码降功耗

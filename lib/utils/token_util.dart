@@ -6,6 +6,13 @@ import 'package:bcrypt/bcrypt.dart';
 import '../constants/constants.dart';
 
 class TokenUtils {
+  /// token 内嵌时间戳，服务端可能按时间窗口校验，因此不能无限期复用。
+  /// 本地缓存 30 分钟，失败（401/403）时由拦截器主动 [invalidateToken] 后重算。
+  static const Duration _tokenTtl = Duration(minutes: 30);
+  static String? _cachedToken;
+  static String? _cachedDeviceCode;
+  static int _cachedAt = 0;
+
   static bool isPreGetLoginParam = false;
   static bool isGetLoginParam = false;
   static bool isOnLogin = false;
@@ -22,6 +29,28 @@ class TokenUtils {
     var cleanedStr = reversedStr.replaceAll(
         RegExp(r'(\r\n|\r|\n|=)'), Constants.EMPTY_STRING);
     return cleanedStr;
+  }
+
+  /// 带缓存的 token 获取：设备指纹变化或缓存超过 TTL 时重新生成。
+  static String getTokenV2Cached(String deviceCode) {
+    final int now = DateTime.now().millisecondsSinceEpoch;
+    final String? cached = _cachedToken;
+    if (cached != null &&
+        deviceCode == _cachedDeviceCode &&
+        now - _cachedAt <= _tokenTtl.inMilliseconds) {
+      return cached;
+    }
+    final String token = getTokenV2(deviceCode);
+    _cachedToken = token;
+    _cachedDeviceCode = deviceCode;
+    _cachedAt = now;
+    return token;
+  }
+
+  static void invalidateToken() {
+    _cachedToken = null;
+    _cachedDeviceCode = null;
+    _cachedAt = 0;
   }
 
   static String getTokenV2(String deviceCode) {

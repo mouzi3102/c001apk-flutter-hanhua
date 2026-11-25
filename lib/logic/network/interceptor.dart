@@ -8,7 +8,11 @@ import '../../utils/storage_util.dart';
 import '../../utils/token_util.dart';
 
 class ApiInterceptor extends Interceptor {
-  String? _token;
+  ApiInterceptor(this.client);
+
+  /// 同一个 Dio 实例，用于 token 失效后原样重放请求
+  final Dio client;
+
   String? _xAppDevice;
   String? _userAgent;
   String? _sdkInt;
@@ -41,7 +45,7 @@ class ApiInterceptor extends Interceptor {
   }
 
   String get token {
-    return _token ??= TokenUtils.getTokenV2(xAppDevice);
+    return TokenUtils.getTokenV2Cached(xAppDevice);
   }
 
   @override
@@ -125,9 +129,85 @@ class ApiInterceptor extends Interceptor {
     handler.next(options);
   }
 
+  /// 登录态失效的服务端提示（HTTP 200 + message 形式）
+  static final RegExp _loginExpiredPattern = RegExp(
+    r'(请先登录|请登录后|登录已?失[效败]|登录状态.{0,4}失效|登录过期|重新登录|token.{0,6}失效|账号.{0,4}异常)',
+    caseSensitive: false,
+  );
+  static int _lastExpiredNoticeAt = 0;
+
+  /// 只对普通 API 请求做 token 重算重放；登录页、验证码、下载、图片流等特殊请求跳过
+  bool _isRetryable(RequestOptions options) {
+    final String path = options.uri.path;
+    if (path.contains('/auth/') || path.contains('/v6/apk/download')) {
+      return false;
+    }
+    if (path.contains('/v6/message/showImage')) return false;
+    if (options.method != 'GET' && options.method != 'POST') return false;
+    return options.uri.host.contains('coolapk.com');
+  }
+
+  @override
+  void onResponse(response, handler) {
+    _checkLoginExpired(response);
+    handler.next(response);
+  }
+
+  /// 统一拦截「登录态已失效」：清掉本地登录标记，退回匿名 Cookie，
+  /// 并做节流提示（1 分钟内只提示一次，避免刷列表时连环弹）。
+  void _checkLoginExpired(Response<dynamic> response) {
+    if (!GlobalData().isLogin) return;
+    final dynamic data = response.data;
+    if (data is! Map) return;
+    final String message =
+        (data['message'] ?? data['messageStatus'] ?? '').toString();
+    if (message.isEmpty) return;
+    // 「密码错误」等是登录表单场景，不属于登录态失效
+    if (message.contains('密码')) return;
+    if (!_loginExpiredPattern.hasMatch(message)) return;
+
+    _markLoginExpired();
+  }
+
+  /// 清掉本地登录标记并节流提示：1 分钟内只提示一次，避免刷列表时连环弹
+  void _markLoginExpired() {
+    GStorage.setIsLogin(false);
+    TokenUtils.invalidateToken();
+
+    final int now = DateTime.now().millisecondsSinceEpoch;
+    if (now - _lastExpiredNoticeAt < 60 * 1000) return;
+    _lastExpiredNoticeAt = now;
+    SmartDialog.showToast('登录状态已失效，请重新登录');
+  }
+
   @override
   void onError(err, handler) async {
-    String url = err.requestOptions.uri.toString();
+    final RequestOptions options = err.requestOptions;
+    final int? statusCode = err.response?.statusCode;
+    final bool isAuthError = statusCode == 401 || statusCode == 403;
+    final bool retried = options.extra['tokenRetried'] == true;
+
+    // 带 Cookie 的请求被拒（401/403）：cookie 已失效，直接退回匿名态
+    if (isAuthError && GlobalData().isLogin) {
+      _markLoginExpired();
+    }
+
+    // 匿名 token 过期/被风控时重算一次 token 并原样重放，成功就直接返回
+    if (isAuthError &&
+        !retried &&
+        _isRetryable(options) &&
+        GlobalData().isLogin == false) {
+      TokenUtils.invalidateToken();
+      options.extra = {...options.extra, 'tokenRetried': true};
+      try {
+        final Response<dynamic> response = await client.fetch(options);
+        return handler.resolve(response);
+      } catch (_) {
+        // 重放失败，走下面的统一错误提示
+      }
+    }
+
+    String url = options.uri.toString();
     if (!url.contains('/v6/apk/download') &&
         !url.contains('/v6/message/showImage')) {
       SmartDialog.showToast(
@@ -143,6 +223,15 @@ class ApiInterceptor extends Interceptor {
       case DioExceptionType.badCertificate:
         return '证书有误！';
       case DioExceptionType.badResponse:
+        final dynamic body = error.response?.data;
+        if (body is Map) {
+          final String msg = (body['message'] ?? '').toString();
+          if (msg.isNotEmpty) return msg;
+        }
+        final int? statusCode = error.response?.statusCode;
+        if (statusCode == 401 || statusCode == 403) {
+          return '登录状态已失效，请重新登录';
+        }
         return '服务器异常，请稍后重试！';
       case DioExceptionType.cancel:
         return '请求已被取消，请重新请求';

@@ -11,8 +11,8 @@ class Request {
   Request._internal() {
     dio = Dio()
       ..options.connectTimeout = const Duration(milliseconds: 5000)
-      ..options.receiveTimeout = const Duration(milliseconds: 5000)
-      ..interceptors.add(ApiInterceptor());
+      ..options.receiveTimeout = const Duration(milliseconds: 5000);
+    dio.interceptors.add(ApiInterceptor(dio));
   }
 
   Future<Response<dynamic>> get(
